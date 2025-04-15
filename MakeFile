@@ -1,0 +1,39 @@
+# Compiler and tools
+CC = gcc
+LEX = flex
+YACC = bison
+
+# Default values for sources and target
+LEX_SRC ?= $(firstword $(wildcard *.l))
+YACC_SRC ?= $(firstword $(wildcard *.y))
+# Derive target name from Yacc file (if present), Lex file, or default to 'program'
+TARGET ?= $(if $(YACC_SRC),$(basename $(notdir $(YACC_SRC))),$(if $(LEX_SRC),$(basename $(notdir $(LEX_SRC))),program))
+
+# Generated files
+LEX_OUT = lex.yy.c
+YACC_OUT = y.tab.c
+YACC_HEADER = y.tab.h
+
+# Default target
+all: $(TARGET).exe
+
+# Link object files into executable
+$(TARGET).exe: $(LEX_OUT) $(YACC_OUT)
+	$(CC) -o $@ $(LEX_OUT) $(YACC_OUT)
+
+# Generate C code from Yacc (if Yacc file exists)
+ifneq ($(strip $(YACC_SRC)),)
+$(YACC_OUT) $(YACC_HEADER): $(YACC_SRC)
+	$(YACC) --yacc -d $(YACC_SRC)
+endif
+
+# Generate C code from Lex
+$(LEX_OUT): $(LEX_SRC) $(YACC_HEADER)
+	$(LEX) $(LEX_SRC)
+
+# Clean generated files
+clean:
+	del $(TARGET).exe $(LEX_OUT) $(YACC_OUT) $(YACC_HEADER) *.exe
+run: $(TARGET).exe
+	.\$(TARGET).exe
+.PHONY: all clean

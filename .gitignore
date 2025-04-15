@@ -1,0 +1,17 @@
+# Bison/Yacc outputs
+*.tab.c
+*.tab.h
+y.tab.c
+y.tab.h
+
+# Flex/Lex output
+lex.yy.c
+
+# Object files and executables
+*.o
+*.exe
+
+# Optional: editor/temp files
+*~
+*.swp
+.DS_Store
