@@ -6,9 +6,17 @@
     int sym[26];
 %}
 
-%token INTEGER VARIABLE
+%union {
+    int intval;
+    char var;
+}
+
+%token <intval> INTEGER
+%token <var> VARIABLE
 %left '+' '-'
 %left '*' '/'
+
+%type <intval> expression
 
 %%
 
