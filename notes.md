@@ -14,4 +14,7 @@ make run
 
 # Clean generated files
 make clean
+
+# run tests 
+make test
 ```

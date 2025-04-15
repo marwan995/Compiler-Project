@@ -14,26 +14,35 @@ LEX_OUT = lex.yy.c
 YACC_OUT = y.tab.c
 YACC_HEADER = y.tab.h
 
-# Default target
-all: $(TARGET).exe
+# Default target: clean, build, and run
+all: clean build run
+
+# Build target: generate and link executable
+build: $(TARGET).exe
 
 # Link object files into executable
 $(TARGET).exe: $(LEX_OUT) $(YACC_OUT)
-	$(CC) -o $@ $(LEX_OUT) $(YACC_OUT)
+	$(CC) -o $@ $(LEX_OUT) $(YACC_OUT) -mconsole
 
 # Generate C code from Yacc (if Yacc file exists)
 ifneq ($(strip $(YACC_SRC)),)
-$(YACC_OUT) $(YACC_HEADER): $(YACC_SRC)
+$(YACC_OUT) $(YACC_HEADER): $(YACC_SRC) node.h
 	$(YACC) --yacc -d $(YACC_SRC)
 endif
 
 # Generate C code from Lex
-$(LEX_OUT): $(LEX_SRC) $(YACC_HEADER)
+$(LEX_OUT): $(LEX_SRC) $(YACC_HEADER) node.h
 	$(LEX) $(LEX_SRC)
+
+# Run the executable
+run: $(TARGET).exe
+	.\$(TARGET).exe
+test: build
+	 cd tests && pytest conftest.py -v --exe=../$(TARGET).exe
+
 
 # Clean generated files
 clean:
-	del $(TARGET).exe $(LEX_OUT) $(YACC_OUT) $(YACC_HEADER) *.exe
-run: $(TARGET).exe
-	.\$(TARGET).exe
-.PHONY: all clean
+	-del /Q $(TARGET).exe $(LEX_OUT) $(YACC_OUT) $(YACC_HEADER) *.exe 2>nul
+
+.PHONY: all build clean run

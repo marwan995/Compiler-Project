@@ -1,0 +1,6 @@
+func int test_if(){
+
+if(x==5){
+    int y=2;
+}
+}

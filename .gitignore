@@ -15,3 +15,5 @@ lex.yy.c
 *~
 *.swp
 .DS_Store
+genparser.y
+*.pyc

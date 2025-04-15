@@ -1,0 +1,81 @@
+%{
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include "node.h"
+#include "y.tab.h"
+void yyerror(char *);
+%}
+
+%%
+#[\s\t]*.*[\s\t]* { /* ignore comments */ }
+    /*Types of data*/
+"int"       return INT;
+"float"         return FLOAT;
+"string"        return STRING;
+"char"          return CHAR;
+"bool"       return BOOL;
+"const"      return CONSTANT;
+"void"          return VOID;
+
+    /*loops*/
+"for"           return FOR;
+"while"         return WHILE;
+"do"            return DO;
+"break"         return BREAK;
+"continue"      return CONTINUE;
+
+    /*relational*/
+">"             return GT;
+"<"             return LT;
+">="            return GE;
+"<="            return LE;
+"=="            return EQ;
+"!="            return NE;
+    /*logical*/
+"&&"            return AND;
+"||"            return OR;
+"!"             return NOT;
+    /*mathematical*/
+"="             return ASSIGN;
+"-"             return SUB;
+"+"             return ADD;
+"*"             return MUL;
+"/"             return DIV;
+"%"             return MOD;
+";"             return SEMICOLON;
+
+
+    /*condtions*/
+"if"            return IF;
+"else"          return ELSE;
+"switch"        return SWITCH;
+"case"          return CASE;
+"default"       return DEFAULT;
+    /*Functions*/    
+"func"          return FUNCTION;
+"return"        return RETURN;
+    /*other keywords and patterns*/
+"ektb"         return PRINT;
+"true"          { yylval.bValue = 1; return BOOL_VALUE; }
+"false"         { yylval.bValue = 0;return BOOL_VALUE; }   
+
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval.id = strdup(yytext) ; return VARIABLE; }
+[0-9][0-9]*     { yylval.iValue = atoi(yytext);  return INT_VALUE; }
+
+[0-9]+\.[0-9]*   { yylval.fValue = atof(yytext); return FLOAT_VALUE; }
+[0-9]+\.[0-9]*[eE][-+]?[0-9]+    { yylval.fValue = atof(yytext); return FLOAT_VALUE; }
+
+
+\'.\'         { yylval.cValue = yytext[1]; return CHAR_VALUE; }
+\"[^"\n]*\"   { yylval.sValue = strdup(yytext); return STRING_VALUE; }
+[(){},]      return *yytext;
+
+[ \t\n]+        { /* ignore whitespace */}
+
+.              {printf("Found char: %s", *yytext); return *yytext;}
+
+%%
+int yywrap(void) {
+    return 1;
+}
