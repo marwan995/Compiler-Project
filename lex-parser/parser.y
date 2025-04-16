@@ -104,13 +104,18 @@ statement:
     | CONTINUE SEMICOLON {  }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
+    | block_structure {  } /* block statement */
     ;  
 
 else_block:
-    '{' statement_list '}'
+    block_structure
     | statement
     ;
     
+block_structure: 
+    '{' statement_list '}' {}
+    ;
+
 case_list: 
      case_list CASE const_value ':' statement {  }
     | case_list DEFAULT ':' statement {  }
