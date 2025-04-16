@@ -58,6 +58,7 @@ void yyerror(char *s);
 %left MUL DIV MOD
 
 %type <nPtr> statement_list statement type var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list unary_operations
+%type <nPtr> non_default_params default_params
 
 %%
 /*--------------------------------------------------------------------------*/
@@ -151,19 +152,25 @@ function_declare:
     ;
 
 params:
-    /* empty */                     {}
-    | param_list                    {}
-    ;
+    /* empty */ {}
+    | param_list {  }
+;
 
 param_list:
-    params_types               {}
-    | param_list ',' params_types {}
-    ;
+    non_default_params
+    | non_default_params ',' default_params
+    | default_params
+;
 
-params_types:
-    type VARIABLE ASSIGN const_value {  }
-    | type VARIABLE {  }
-    ;
+non_default_params:
+    type VARIABLE
+    | non_default_params ',' type VARIABLE
+;
+
+default_params:
+    type VARIABLE ASSIGN const_value
+    | default_params ',' type VARIABLE ASSIGN const_value
+;
 
 /*--------------------------------------------------------------------------*/
 /* Variable Declaration */
