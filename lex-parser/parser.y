@@ -38,6 +38,8 @@ void yyerror(char *s);
 
 %token GT LT GE LE EQ NE AND OR NOT ASSIGN
 
+%token INC DEC
+
 %token ADD SUB MUL DIV MOD SEMICOLON
 
 %token FUNCTION RETURN PRINT
@@ -55,7 +57,7 @@ void yyerror(char *s);
 %left ADD SUB
 %left MUL DIV MOD
 
-%type <nPtr> statement_list statement type var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list
+%type <nPtr> statement_list statement type var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list unary_operations
 
 %%
 /*--------------------------------------------------------------------------*/
@@ -90,44 +92,50 @@ statement:
     var_declare SEMICOLON {}
     | expression SEMICOLON {  }
     | PRINT '(' expression ')' SEMICOLON {  }
-    | IF '(' expression ')' '{' statement_list '}' %prec IFX {  }
-    | IF '(' expression ')' '{' statement_list '}' ELSE else_block {  }
-    | IF '(' expression ')'  statement %prec IFX {  }
-    | IF '(' expression ')'  statement ELSE statement {  }
-    | WHILE '(' expression ')' statement {  }
+    | if_statement {}
     | WHILE '(' expression ')' '{' statement_list '}' {  }
     | DO '{' statement_list '}' WHILE '(' expression ')' SEMICOLON {  }
-    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON assign_expression ')' '{' statement_list '}' { printf( "for loop\n"); }
+    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON for_loop_expression ')' '{' statement_list '}' { printf( "for loop\n"); }
     | SEMICOLON   {  }  /* empty statment */
     | return_statement {}
     | BREAK SEMICOLON {  }
     | CONTINUE SEMICOLON {  }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
-    | block_structure {  } /* block statement */
+    | '{' statement_list '}' {}
     ;  
 
+if_statement:
+    IF '(' expression ')' '{' statement_list '}' %prec IFX {  }
+    | IF '(' expression ')' '{' statement_list '}' ELSE else_block {  };
+
 else_block:
-    block_structure
-    | statement
+    '{' statement_list '}' {}
+    | if_statement {  }
     ;
     
-block_structure: 
-    '{' statement_list '}' {}
-    ;
 
 case_list: 
-     case_list CASE const_value ':' statement {  }
-    | case_list DEFAULT ':' statement {  }
-    | case_list CASE const_value ':' '{' statement_list '}' {  }
+    case_list CASE const_value ':' '{' statement_list '}' {  }
     | case_list DEFAULT ':' '{' statement_list '}' {  }
     |                           {}
     ;
+
     
+/*--------------------------------------------------------------------------*/
+/* For loop */
+/*--------------------------------------------------------------------------*/
+
 for_loop_init:
    assign_expression {  }
     | var_declare {  }
     ;
+
+for_loop_expression:
+    assign_expression {  }
+    | unary_operations {  }
+    ;
+
 return_statement:
     RETURN expression SEMICOLON {  }
     | RETURN SEMICOLON {  }
@@ -148,9 +156,15 @@ params:
     ;
 
 param_list:
-    type VARIABLE                   {}
-    | type VARIABLE ',' param_list {}
+    params_types               {}
+    | param_list ',' params_types {}
     ;
+
+params_types:
+    type VARIABLE ASSIGN const_value {  }
+    | type VARIABLE {  }
+    ;
+
 /*--------------------------------------------------------------------------*/
 /* Variable Declaration */
 /*--------------------------------------------------------------------------*/
@@ -188,8 +202,17 @@ operation_expressions:
     | expression OR expression          { }
     | '(' expression ')'          {}
     | VARIABLE '(' argument_list ')' {  }
+    | unary_operations
     ;
-                            
+
+unary_operations:
+    INC VARIABLE {  }
+    | DEC VARIABLE {  }
+    | VARIABLE INC {  }
+    | VARIABLE DEC {  }
+    ;
+
+
 argument_list:
     /* empty */                   
      expression                  { }

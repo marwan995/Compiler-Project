@@ -36,6 +36,9 @@ void yyerror(char *);
 "&&"            return AND;
 "||"            return OR;
 "!"             return NOT;
+    /*unary operations*/
+"++"            return INC;
+"--"            return DEC;
     /*mathematical*/
 "="             return ASSIGN;
 "-"             return SUB;
