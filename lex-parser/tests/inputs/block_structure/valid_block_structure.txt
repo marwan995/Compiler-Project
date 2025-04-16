@@ -1,0 +1,6 @@
+func void test() {
+    int x = 1;
+    {
+        char c = 'c';
+    }
+}

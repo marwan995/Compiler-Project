@@ -104,6 +104,7 @@ statement:
     | CONTINUE SEMICOLON {  }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
+    | '{' statement_list '}' {  } /* block statement */
     ;  
 
 else_block:
