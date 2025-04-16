@@ -1,5 +1,0 @@
-func void x(){
-    if(true) {
-        
-    };
-};

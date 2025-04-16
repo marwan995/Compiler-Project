@@ -1,6 +1,0 @@
-func void x()
-{
-    int y = 5;
-    test==5;
-    return void;
-    }

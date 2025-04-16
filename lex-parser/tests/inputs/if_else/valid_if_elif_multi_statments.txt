@@ -1,0 +1,13 @@
+func int test_elif(){
+
+    if (x == 1){
+        int z = 0;
+    }
+    else if(x == 2){
+        int z = 0;
+    }
+    else {
+        z = 0;
+    }
+return 0;
+}

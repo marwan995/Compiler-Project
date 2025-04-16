@@ -56,7 +56,7 @@ void yyerror(char *);
 "func"          return FUNCTION;
 "return"        return RETURN;
     /*other keywords and patterns*/
-"ektb"         return PRINT;
+"print"         return PRINT;
 "true"          { yylval.bValue = 1; return BOOL_VALUE; }
 "false"         { yylval.bValue = 0;return BOOL_VALUE; }   
 
@@ -69,7 +69,7 @@ void yyerror(char *);
 
 \'.\'         { yylval.cValue = yytext[1]; return CHAR_VALUE; }
 \"[^"\n]*\"   { yylval.sValue = strdup(yytext); return STRING_VALUE; }
-[(){},]      return *yytext;
+[(){},:]      return *yytext;
 
 [ \t\n]+        { /* ignore whitespace */}
 

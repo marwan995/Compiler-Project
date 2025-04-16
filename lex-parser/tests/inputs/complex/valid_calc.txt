@@ -1,0 +1,29 @@
+func int complexCalc(int a, float b, bool flag)
+{
+    int result = 0;
+    float temp = b * 2.5;
+    if (flag == true && a > 0)
+    {
+        for (int i = 0; i < a; i = i + 1)
+        {
+            if (i % 2 == 0)
+            {
+                result = result + temp;
+            }
+            else
+            {
+                result = result - i;
+            }
+        }
+    }
+    else
+    {
+        while (temp >= 1.0)
+        {
+            result = result + 1;
+            temp = temp / 2;
+        }
+    }
+    print(result);
+    return result;
+}

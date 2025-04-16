@@ -9,11 +9,9 @@ nodeType *opr(int oper, int nops, ...);
 nodeType *id(int i);
 nodeType *con(int value);
 void freeNode(nodeType *p);
-int ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
-int sym[26];                    /* symbol table */
 %}
 
 %union {
@@ -44,7 +42,7 @@ int sym[26];                    /* symbol table */
 
 %token FUNCTION RETURN PRINT
 
-%token REPEAT UNTIL SWITCH CASE DEFAULT
+%token SWITCH CASE DEFAULT
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -92,13 +90,43 @@ statement:
     var_declare SEMICOLON {}
     | expression SEMICOLON {  }
     | PRINT '(' expression ')' SEMICOLON {  }
+    | IF '(' expression ')' '{' statement_list '}' %prec IFX {  }
+    | IF '(' expression ')' '{' statement_list '}' ELSE else_block {  }
     | IF '(' expression ')'  statement %prec IFX {  }
     | IF '(' expression ')'  statement ELSE statement {  }
-    | IF '(' expression ')' '{' statement_list '}' %prec IFX {  }
-    | IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}' {  }
-    | SEMICOLON   {  };  /* empty statment */
-    | RETURN expression SEMICOLON {  }
+    | WHILE '(' expression ')' statement {  }
+    | WHILE '(' expression ')' '{' statement_list '}' {  }
+    | DO '{' statement_list '}' WHILE '(' expression ')' SEMICOLON {  }
+    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON assign_expression ')' '{' statement_list '}' { printf( "for loop\n"); }
+    | SEMICOLON   {  }  /* empty statment */
+    | return_statement {}
+    | BREAK SEMICOLON {  }
+    | CONTINUE SEMICOLON {  }
+    | assign_expression SEMICOLON {  }
+    | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
     ;  
+
+else_block:
+    '{' statement_list '}'
+    | statement
+    ;
+    
+case_list: 
+     case_list CASE const_value ':' statement {  }
+    | case_list DEFAULT ':' statement {  }
+    | case_list CASE const_value ':' '{' statement_list '}' {  }
+    | case_list DEFAULT ':' '{' statement_list '}' {  }
+    |                           {}
+    ;
+    
+for_loop_init:
+   assign_expression {  }
+    | var_declare {  }
+    ;
+return_statement:
+    RETURN expression SEMICOLON {  }
+    | RETURN SEMICOLON {  }
+    ;
 
 /*--------------------------------------------------------------------------*/
 /* Function Declaration */
@@ -124,13 +152,16 @@ param_list:
 
 var_declare:
     type VARIABLE   /*int x;*/           {}
-    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ {}
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ {}
+    | CONSTANT type assign_expression /*int const x = 1*/ {}
+    | type assign_expression /*int x = 1;*/ {}
+    ;
+
+assign_expression:
+    VARIABLE ASSIGN expression {  }
     ;
 
 expression:
     const_value {}
-    | VOID {}
     | VARIABLE {}
     | operation_expressions
 ;    

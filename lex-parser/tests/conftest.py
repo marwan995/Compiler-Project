@@ -22,27 +22,31 @@ def executable_path(pytestconfig):
     return os.path.normpath(exe_path)
 
 def collect_test_cases():
-    """Collect test cases from inputs directory."""
+    """Collect test cases recursively from inputs directory."""
     test_cases = []
     if not os.path.exists(INPUT_DIR):
         pytest.fail(f"Input directory {INPUT_DIR} does not exist")
     
-    for input_file in os.listdir(INPUT_DIR):
-        if not input_file.endswith(".txt"):
-            continue
-        input_path = os.path.join(INPUT_DIR, input_file)
-        output_file = input_file.replace(".txt", ".out")
-        output_path = os.path.join(OUTPUT_DIR, output_file)
-        
-        # Determine expected exit code based on filename
-        if input_file.startswith("valid"):
-            expected_exit_code = 0
-        elif input_file.startswith("invalid"):
-            expected_exit_code = 1
-        else:
-            continue  # Skip files that don't start with valid/invalid
-        
-        test_cases.append((input_path, output_path, expected_exit_code))
+    # Walk through all subdirectories in INPUT_DIR
+    for root, _, files in os.walk(INPUT_DIR):
+        for input_file in files:
+            if not input_file.endswith(".txt"):
+                continue
+            input_path = os.path.join(root, input_file)
+            # Compute relative path to maintain folder structure in OUTPUT_DIR
+            relative_path = os.path.relpath(root, INPUT_DIR)
+            output_file = input_file.replace(".txt", ".out")
+            output_path = os.path.join(OUTPUT_DIR, relative_path, output_file)
+            
+            # Determine expected exit code based on filename
+            if input_file.startswith("valid"):
+                expected_exit_code = 0
+            elif input_file.startswith("invalid"):
+                expected_exit_code = 1
+            else:
+                continue  # Skip files that don't start with valid/invalid
+            
+            test_cases.append((input_path, output_path, expected_exit_code))
     
     if not test_cases:
         pytest.fail(f"No valid test cases found in {INPUT_DIR}")
@@ -80,10 +84,12 @@ def test_program(input_file, expected_output_file, expected_exit_code, executabl
         pytest.fail(f"Executable timed out on input: {input_file}")
     except UnicodeDecodeError:
         pytest.fail(f"Output encoding error on input: {input_file}")
-    # In test_program function, before the assert
+    
+    # Debugging output
     print(f"Input content: {open(input_file).read()}")
     print(f"Actual stderr: {process.stderr}")
     print(f"Actual stdout: {process.stdout}")
+    
     assert process.returncode == expected_exit_code, (
         f"Expected exit code {expected_exit_code}, got {process.returncode}\n"
         f"Input file: {input_file}\n"
