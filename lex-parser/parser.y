@@ -55,7 +55,7 @@
 %left ADD SUB
 %left MUL DIV MOD
 
-%type<sValue> type VARIABLE
+%type<sValue> type VARIABLE VOID
 
 %type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list unary_operations
 %type <nPtr> non_default_params default_params assign_expression
@@ -155,8 +155,8 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE '(' params ')' block_structure {}
-    | FUNCTION type VARIABLE '(' params ')' block_structure   {}
+    FUNCTION VOID VARIABLE { insertSymbol($3, "func", $2, false, false, yylineno); } '(' params ')' block_structure {  }
+    | FUNCTION type VARIABLE { insertSymbol($3, "func", $2, false, false, yylineno); }'(' params ')' block_structure   {  }
     ;
 
 params:
@@ -171,13 +171,13 @@ param_list:
 ;
 
 non_default_params:
-    type VARIABLE
-    | non_default_params ',' type VARIABLE
+    type VARIABLE { insertSymbol($2, "param", $1, false, true, yylineno); }
+    | non_default_params ',' type VARIABLE { insertSymbol($4, "param", $3, false, true, yylineno); }
 ;
 
 default_params:
-    type VARIABLE ASSIGN const_value
-    | default_params ',' type VARIABLE ASSIGN const_value
+    type VARIABLE ASSIGN const_value { insertSymbol($2, "param", $1, true, true, yylineno); }
+    | default_params ',' type VARIABLE ASSIGN const_value { insertSymbol($4, "param", $3, true, true, yylineno); }
 ;
 
 /*--------------------------------------------------------------------------*/
@@ -185,9 +185,9 @@ default_params:
 /*--------------------------------------------------------------------------*/
 
 var_declare:
-    type VARIABLE   /*int x;*/           { insertSymbol($2, "var", $1, yylineno); }
-    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertSymbol($3, "const", $2, yylineno); }
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ { insertSymbol($2, "var", $1, yylineno); }
+    type VARIABLE   /*int x;*/           { insertSymbol($2, "var", $1, false, false, yylineno); }
+    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertSymbol($3, "const", $2, true, false,yylineno); }
+    | type VARIABLE ASSIGN expression /*int x = 1;*/ { insertSymbol($2, "var", $1, true, false, yylineno); }
     ;
 
 assign_expression:
