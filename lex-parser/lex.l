@@ -2,21 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "node.h"
 #include "y.tab.h"
 void yyerror(char *);
 %}
 
+%option yylineno
+
 %%
 #[\s\t]*.*[\s\t]* { /* ignore comments */ }
     /*Types of data*/
-"int"       return INT;
-"float"         return FLOAT;
-"string"        return STRING;
-"char"          return CHAR;
-"bool"       return BOOL;
-"const"      return CONSTANT;
-"void"          return VOID;
+"int"       { yylval.sValue = strdup("int"); return INT; }
+"float"     { yylval.sValue = strdup("float"); return FLOAT; }
+"string"    { yylval.sValue = strdup("string"); return STRING; }
+"char"      { yylval.sValue = strdup("char"); return CHAR; }
+"bool"      { yylval.sValue = strdup("bool"); return BOOL; }
+"const"     { yylval.sValue = strdup("const"); return CONSTANT; }
+"void"      { yylval.sValue = strdup("void"); return VOID; }
 
     /*loops*/
 "for"           return FOR;
@@ -63,7 +64,7 @@ void yyerror(char *);
 "true"          { yylval.bValue = 1; return BOOL_VALUE; }
 "false"         { yylval.bValue = 0;return BOOL_VALUE; }   
 
-[a-zA-Z_][a-zA-Z0-9_]*  { yylval.id = strdup(yytext) ; return VARIABLE; }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval.sValue = strdup(yytext) ; return VARIABLE; }
 [0-9][0-9]*     { yylval.iValue = atoi(yytext);  return INT_VALUE; }
 
 [0-9]+\.[0-9]*   { yylval.fValue = atof(yytext); return FLOAT_VALUE; }

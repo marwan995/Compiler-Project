@@ -17,3 +17,4 @@ lex.yy.c
 .DS_Store
 genparser.y
 *.pyc
+*.zip

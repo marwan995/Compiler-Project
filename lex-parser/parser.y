@@ -1,17 +1,17 @@
 %{
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include "node.h"
-extern FILE *yyin;
-/* prototypes */
-nodeType *opr(int oper, int nops, ...);
-nodeType *id(int i);
-nodeType *con(int value);
-void freeNode(nodeType *p);
-int yylex(void);
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdarg.h>
+    
+    #include "y.tab.h"
+    #include "symbol_table.c"
 
-void yyerror(char *s);
+    extern FILE *yyin;
+    extern int yylineno;
+
+    int yylex(void);
+
+    void yyerror(char *s);
 %}
 
 %union {
@@ -20,8 +20,8 @@ void yyerror(char *s);
     int bValue;          /* boolean value */
     char cValue;         /* char value */
     char *sValue;        /* string value */
-    char *id;        /* symbol name */
-    nodeType *nPtr;      /* node pointer */
+
+    struct nodeType *nPtr;
 };
 
 %token <iValue> INT_VALUE
@@ -30,9 +30,7 @@ void yyerror(char *s);
 %token <cValue> CHAR_VALUE
 %token <sValue> STRING_VALUE
 
-%token <id> VARIABLE
-
-%token INT FLOAT STRING CHAR BOOL CONSTANT VOID
+%token INT FLOAT STRING CHAR BOOL CONSTANT VOID VARIABLE
 
 %token FOR WHILE DO BREAK CONTINUE IF ELSE
 
@@ -57,8 +55,10 @@ void yyerror(char *s);
 %left ADD SUB
 %left MUL DIV MOD
 
-%type <nPtr> statement_list statement type var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list unary_operations
-%type <nPtr> non_default_params default_params
+%type<sValue> type VARIABLE
+
+%type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions argument_list unary_operations
+%type <nPtr> non_default_params default_params assign_expression
 
 %%
 /*--------------------------------------------------------------------------*/
@@ -66,7 +66,7 @@ void yyerror(char *s);
 /*--------------------------------------------------------------------------*/
 
 program:
-        declare_list                {  }
+        declare_list                { initSymbolTable(yylineno); }
         | /* NULL */
         ;
 
@@ -94,34 +94,42 @@ statement:
     | expression SEMICOLON {  }
     | PRINT '(' expression ')' SEMICOLON {  }
     | if_statement {}
-    | WHILE '(' expression ')' '{' statement_list '}' {  }
-    | DO '{' statement_list '}' WHILE '(' expression ')' SEMICOLON {  }
-    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON for_loop_expression ')' '{' statement_list '}' { printf( "for loop\n"); }
+    | WHILE '(' expression ')' block_structure {  }
+    | DO block_structure WHILE '(' expression ')' SEMICOLON {  }
+    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON for_loop_expression ')' block_structure { printf( "for loop\n"); }
     | SEMICOLON   {  }  /* empty statment */
     | return_statement {}
     | BREAK SEMICOLON {  }
     | CONTINUE SEMICOLON {  }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
-    | '{' statement_list '}' {}
+    | block_structure {}
     ;  
 
 if_statement:
-    IF '(' expression ')' '{' statement_list '}' %prec IFX {  }
-    | IF '(' expression ')' '{' statement_list '}' ELSE else_block {  };
+    IF '(' expression ')' block_structure %prec IFX {  }
+    | IF '(' expression ')' block_structure ELSE else_block {  };
 
 else_block:
-    '{' statement_list '}' {}
+    block_structure {}
     | if_statement {  }
     ;
     
 
 case_list: 
-    case_list CASE const_value ':' '{' statement_list '}' {  }
-    | case_list DEFAULT ':' '{' statement_list '}' {  }
+    case_list CASE const_value ':' block_structure {  }
+    | case_list DEFAULT ':' block_structure {  }
     |                           {}
     ;
 
+
+/*--------------------------------------------------------------------------*/
+/* Block Structure */
+/*--------------------------------------------------------------------------*/
+
+block_structure: 
+    '{' { enterScope(yylineno); } statement_list '}' { exitScope(yylineno); }
+    ;
     
 /*--------------------------------------------------------------------------*/
 /* For loop */
@@ -147,8 +155,8 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE '(' params ')' '{' statement_list '}' {}
-    | FUNCTION type VARIABLE '(' params ')' '{' statement_list '}'   {}
+    FUNCTION VOID VARIABLE '(' params ')' block_structure {}
+    | FUNCTION type VARIABLE '(' params ')' block_structure   {}
     ;
 
 params:
@@ -177,9 +185,9 @@ default_params:
 /*--------------------------------------------------------------------------*/
 
 var_declare:
-    type VARIABLE   /*int x;*/           {}
-    | CONSTANT type assign_expression /*int const x = 1*/ {}
-    | type assign_expression /*int x = 1;*/ {}
+    type VARIABLE   /*int x;*/           { insertSymbol($2, "var", $1, yylineno); }
+    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertSymbol($3, "const", $2, yylineno); }
+    | type VARIABLE ASSIGN expression /*int x = 1;*/ { insertSymbol($2, "var", $1, yylineno); }
     ;
 
 assign_expression:
@@ -237,11 +245,11 @@ type:
     ;
 
 const_value:
-    INT_VALUE                 { printf("Integer value: %d\n", $1); }
-    | FLOAT_VALUE                 { printf("Float value: %f\n", $1); }
-    | BOOL_VALUE            { printf("Boolean value: %i\n", $1); }
-    | CHAR_VALUE            { printf("Character value: %c\n", $1); }
-    | STRING_VALUE          { printf("String value: %s\n", $1); }
+    INT_VALUE                 { }
+    | FLOAT_VALUE                 { }
+    | BOOL_VALUE            { }
+    | CHAR_VALUE            {  }
+    | STRING_VALUE          { }
     ;
 
 %%
