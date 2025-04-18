@@ -1,0 +1,5 @@
+func int test(int x, int y, bool z) {};
+func int main(){
+
+    test(5,true,5);
+}

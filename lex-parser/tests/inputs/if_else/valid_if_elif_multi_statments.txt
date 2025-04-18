@@ -1,4 +1,4 @@
-func int test_elif(){
+func int test_elif(int x){
 
     if (x == 1){
         int z = 0;
@@ -7,7 +7,7 @@ func int test_elif(){
         int z = 0;
     }
     else {
-        z = 0;
+       int z = 0;
     }
 return 0;
 }

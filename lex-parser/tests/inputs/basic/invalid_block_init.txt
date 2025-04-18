@@ -1,0 +1,5 @@
+int x =100;
+func int hsd(){
+    int x ;
+    x++;
+}
