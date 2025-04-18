@@ -66,7 +66,7 @@
 /*--------------------------------------------------------------------------*/
 
 program:
-        declare_list                { initSymbolTable(yylineno); }
+        declare_list                { }
         | /* NULL */
         ;
 
@@ -128,7 +128,9 @@ case_list:
 /*--------------------------------------------------------------------------*/
 
 block_structure: 
-    '{' { enterScope(yylineno); } statement_list '}' { exitScope(yylineno); }
+    '{' { enterScope(yylineno); } 
+    statement_list 
+    '}' { exitScope(yylineno); }
     ;
     
 /*--------------------------------------------------------------------------*/
@@ -155,8 +157,8 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE { insertSymbol($3, "func", $2, false, false, yylineno); } '(' params ')' block_structure {  }
-    | FUNCTION type VARIABLE { insertSymbol($3, "func", $2, false, false, yylineno); }'(' params ')' block_structure   {  }
+    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure {  }
+    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   {  }
     ;
 
 params:
@@ -171,13 +173,13 @@ param_list:
 ;
 
 non_default_params:
-    type VARIABLE { insertSymbol($2, "param", $1, false, true, yylineno); }
-    | non_default_params ',' type VARIABLE { insertSymbol($4, "param", $3, false, true, yylineno); }
+    type VARIABLE { insertParam($2, "param", $1, false, yylineno); }
+    | non_default_params ',' type VARIABLE { insertParam($4, "param", $3, false, yylineno); }
 ;
 
 default_params:
-    type VARIABLE ASSIGN const_value { insertSymbol($2, "param", $1, true, true, yylineno); }
-    | default_params ',' type VARIABLE ASSIGN const_value { insertSymbol($4, "param", $3, true, true, yylineno); }
+    type VARIABLE ASSIGN const_value { insertParam($2, "param", $1, true, yylineno); }
+    | default_params ',' type VARIABLE ASSIGN const_value { insertParam($4, "param", $3, true, yylineno); }
 ;
 
 /*--------------------------------------------------------------------------*/
@@ -185,9 +187,9 @@ default_params:
 /*--------------------------------------------------------------------------*/
 
 var_declare:
-    type VARIABLE   /*int x;*/           { insertSymbol($2, "var", $1, false, false, yylineno); }
-    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertSymbol($3, "const", $2, true, false,yylineno); }
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ { insertSymbol($2, "var", $1, true, false, yylineno); }
+    type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno); }
+    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertVarConst($3, "const", $2, true,yylineno); }
+    | type VARIABLE ASSIGN expression /*int x = 1;*/ { insertVarConst($2, "var", $1, true, yylineno); }
     ;
 
 assign_expression:
@@ -272,5 +274,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         fclose(yyin);
     }
+
+    printSymbolTable(); 
     return result;
 }

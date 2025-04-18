@@ -26,12 +26,12 @@ $(TARGET).exe: $(LEX_OUT) $(YACC_OUT)
 
 # Generate C code from Yacc (if Yacc file exists)
 ifneq ($(strip $(YACC_SRC)),)
-$(YACC_OUT) $(YACC_HEADER): $(YACC_SRC) node.h
+$(YACC_OUT) $(YACC_HEADER): $(YACC_SRC) 
 	$(YACC) --yacc -d $(YACC_SRC)
 endif
 
 # Generate C code from Lex
-$(LEX_OUT): $(LEX_SRC) $(YACC_HEADER) node.h
+$(LEX_OUT): $(LEX_SRC) $(YACC_HEADER) 
 	$(LEX) $(LEX_SRC)
 
 # Run the executable
