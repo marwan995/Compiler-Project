@@ -5,4 +5,5 @@ func void ifElse() {
     } else {
         x = 2;
     }
+    return;
 }

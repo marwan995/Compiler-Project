@@ -6,4 +6,5 @@ func void testWhile_BigValid() {
         i = i + 1;
     }
     print(sum);
+    return ;
 }

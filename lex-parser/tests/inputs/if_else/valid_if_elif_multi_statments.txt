@@ -9,5 +9,5 @@ func int test_elif(int x){
     else {
        int z = 0;
     }
-return 0;
+    return 0;
 }

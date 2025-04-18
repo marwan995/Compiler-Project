@@ -37,7 +37,7 @@ $(LEX_OUT): $(LEX_SRC) $(YACC_HEADER)
 # Run the executable
 run: $(TARGET).exe
 	.\$(TARGET).exe
-test: build
+test: clean build
 	 cd tests && pytest conftest.py -v --exe=../$(TARGET).exe
 
 

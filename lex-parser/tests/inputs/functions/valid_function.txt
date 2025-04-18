@@ -7,4 +7,5 @@ func void x(){
     if(true) {
         
     };
+    return;
 };

@@ -7,4 +7,5 @@ func void computeSum(int n)
         n = n - 1;
     }
     print(sum);
+    return;
 }

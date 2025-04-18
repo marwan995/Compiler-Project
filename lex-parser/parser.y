@@ -144,8 +144,8 @@ block_structure:
 /*--------------------------------------------------------------------------*/
 
 for_loop_init:
-   assign_expression {  }
-    | var_declare {  }
+    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1, yylineno), $3); validateNotConst($1, yylineno); insertForLoopVar($1, "var", NULL, yylineno);}
+    | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4) ? insertForLoopVar($2, "var", $1, yylineno): yyerror("Type mismatch in assignment");  }
     ;
 
 for_loop_expression:
@@ -154,8 +154,8 @@ for_loop_expression:
     ;
 
 return_statement:
-    RETURN expression SEMICOLON {  }
-    | RETURN SEMICOLON {  }
+    RETURN expression SEMICOLON { validateReturnType($2->type, yylineno); markFunctionReturnType(yylineno); }
+    | RETURN SEMICOLON { validateReturnType("void", yylineno); markFunctionReturnType(yylineno); }
     ;
 
 /*--------------------------------------------------------------------------*/
@@ -163,8 +163,8 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure {  }
-    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   {  }
+    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure { checkLastFunctionReturnType(yylineno); }
+    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   { checkLastFunctionReturnType(yylineno); }
     ;
 
 params:

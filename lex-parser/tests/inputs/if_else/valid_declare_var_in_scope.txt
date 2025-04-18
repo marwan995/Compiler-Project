@@ -1,7 +1,8 @@
 func int test_if(){
     int x=0;
-    if(x==5){
+    int y = 0;
+    if(x==5 || y == 0){
         int y=2;
     }
-    return x;
+    return 0;
 }

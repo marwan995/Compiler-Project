@@ -3,4 +3,5 @@ func void test() {
     {
         char c = 'c';
     }
+    return;
 }

@@ -4,4 +4,5 @@ func void testMissingBracket() {
             print(i);
         }
     }
+    return;
 }

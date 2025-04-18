@@ -16,10 +16,12 @@ typedef struct Symbol {
     char* dataType; // int, float, char, etc.
     int scope; // 0 for global
     bool isInitialized;
-    
+    bool isForLoop;
+
     int paramCount; // number of parameters for functions
     int* paramsIds;
     bool isParam;
+    bool hasReturn;
 } Symbol;
 
 Symbol symbolTable[MAX_SYMBOLS];
@@ -92,77 +94,6 @@ void initParams(int functionIdx) {
     }
 }
 
-int insertSymbol(char *name, char* type, char* dataType, bool isInitialized, bool isParam, int lineNumber) {
-    if (blockIdx == -1) {
-        initSymbolTable(lineNumber);
-    }
-    printf("Adding symbol: %s, type: %s, dataType: %s, at line: %i\n", name, type, dataType, lineNumber);
-
-    if (isSymbolInSameScope(name)) {
-        printf("Error: Symbol %s already declared\n", name);
-        exit(1);
-    }
-
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        if (symbolTable[i].id == -1) {
-
-            symbolTable[i].id = i;
-            symbolTable[i].name = strdup(name);
-            symbolTable[i].type = strdup(type);
-            symbolTable[i].dataType = strdup(dataType);
-
-            if(isParam) {
-                symbolTable[i].scope = blockIdx + 1; // params are in the next scope
-                bool isInserted = insertParamToFunction(lastFunctionIdx, i);
-                if (!isInserted) {
-                    printf("Error: Could not insert parameter %s to function at line %i\n", name, lineNumber);
-                    exit(1);
-                }
-            } else {
-                symbolTable[i].scope = blockIdx;
-            }
-            symbolTable[i].isParam = isParam;
-            symbolTable[i].isInitialized = isInitialized;
-            symbolTable[i].paramCount = 0;
-            
-            if (strcmp(type, "func") == 0) {
-                lastFunctionIdx = i;
-                initParams(lastFunctionIdx);
-            }
-            return i;
-        }
-    }
-
-    printf("Error: Symbol table is full, cannot insert symbol %s at line %i\n", name, lineNumber);
-    exit(1);
-}
-
-int insertParam(char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
-    int result = insertSymbol(name, type, dataType, isInitialized, true, lineNumber);
-    return result;
-}
-
-int insertVarConst (char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
-    int result = insertSymbol(name, type, dataType, isInitialized, false, lineNumber);
-    return result;
-}
-
-int insertFunc(char *name, char* type, char* dataType, int lineNumber) {
-    int result = insertSymbol(name, type, dataType, false, false, lineNumber);
-    return result;
-}
-
-void validateNotConst(char *name, int lineNumber) {
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        if (symbolTable[i].id != -1 && strcmp(symbolTable[i].name, name) == 0) {
-            if (strcmp(symbolTable[i].type, "const") == 0) {
-                printf("Error: Cannot modify constant %s at line %i\n", name, lineNumber);
-                exit(1);
-            }
-        }
-    }
-}
-
 int lookup(char *name, int lineNumber) {
     printf("Looking up symbol: %s at line: %i...\n", name, lineNumber);
     for (int i = 0; i < MAX_SYMBOLS; i++) {
@@ -183,6 +114,141 @@ char* getSymbolDataType(char *name, int lineNumber) {
         exit(1);
     }
     return symbolTable[id].dataType;
+}
+
+int insertSymbol(char *name, char* type, char* dataType, bool isInitialized, bool isParam, bool isForLoop, int lineNumber) {
+    if (blockIdx == -1) {
+        initSymbolTable(lineNumber);
+    }
+    printf("Adding symbol: %s, type: %s, dataType: %s, at line: %i\n", name, type, dataType, lineNumber);
+
+    if (isSymbolInSameScope(name)) {
+        printf("Error: Symbol %s already declared\n", name);
+        exit(1);
+    }
+
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (symbolTable[i].id == -1) {
+
+            symbolTable[i].id = i;
+            symbolTable[i].name = strdup(name);
+            symbolTable[i].type = strdup(type);
+            symbolTable[i].dataType = strdup(dataType);
+
+            if(isParam || isForLoop) {
+                symbolTable[i].scope = blockIdx + 1;
+            } else {
+                symbolTable[i].scope = blockIdx;
+            }
+
+            if(isParam) {
+                bool isInserted = insertParamToFunction(lastFunctionIdx, i);
+                if (!isInserted) {
+                    printf("Error: Could not insert parameter %s to function at line %i\n", name, lineNumber);
+                    exit(1);
+                }
+            } 
+
+            symbolTable[i].isForLoop = isForLoop;
+            symbolTable[i].isParam = isParam;
+            symbolTable[i].isInitialized = isInitialized;
+            symbolTable[i].paramCount = 0;
+            
+            if (strcmp(type, "func") == 0) {
+                lastFunctionIdx = i;
+                initParams(lastFunctionIdx);
+            }
+            return i;
+        }
+    }
+
+    printf("Error: Symbol table is full, cannot insert symbol %s at line %i\n", name, lineNumber);
+    exit(1);
+}
+
+int insertParam(char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
+    int result = insertSymbol(name, type, dataType, isInitialized, true, false, lineNumber);
+    return result;
+}
+
+int insertVarConst (char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
+    int result = insertSymbol(name, type, dataType, isInitialized, false, false, lineNumber);
+    return result;
+}
+
+int insertFunc(char *name, char* type, char* dataType, int lineNumber) {
+    int result = insertSymbol(name, type, dataType, false, false, false, lineNumber);
+    return result;
+}
+
+int insertForLoopVar(char *name, char* type, char* dataType, int lineNumber) {
+    if(dataType == NULL){
+        dataType = getSymbolDataType(name, lineNumber);
+        if(strcmp(dataType, "int") != 0){
+            printf("Error: For loop variable %s must be of type int at line %i\n", name, lineNumber);
+            exit(1);
+        }
+    }
+    
+    int result = insertSymbol(name, type, dataType, true, false, true, lineNumber);
+    return result;
+}
+
+void validateNotConst(char *name, int lineNumber) {
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (symbolTable[i].id != -1 && strcmp(symbolTable[i].name, name) == 0) {
+            if (strcmp(symbolTable[i].type, "const") == 0) {
+                printf("Error: Cannot modify constant %s at line %i\n", name, lineNumber);
+                exit(1);
+            }
+        }
+    }
+}
+
+void validateReturnType(char *returnType, int lineNumber) {
+    if (lastFunctionIdx == -1) {
+        printf("Error: No function in scope to validate return type at line %i\n", lineNumber);
+        exit(1);
+    }
+    if (strcmp(symbolTable[lastFunctionIdx].dataType, "void") == 0) {
+        return;
+    }
+
+    if (strcmp(symbolTable[lastFunctionIdx].dataType, returnType) != 0) {
+        printf("Error: Return type mismatch for function %s: expected %s, got %s at line %i\n",
+               symbolTable[lastFunctionIdx].name, symbolTable[lastFunctionIdx].dataType, returnType, lineNumber);
+        exit(1);
+    }
+}
+
+void markFunctionReturnType(int lineNumber) {
+    if (lastFunctionIdx == -1) {
+        printf("Error: No function in scope to mark return type at line %i\n", lineNumber);
+        exit(1);
+    }
+    if(blockIdx-1 > symbolTable[lastFunctionIdx].scope) {
+        return;
+    }
+    if(blockIdx-1 == symbolTable[lastFunctionIdx].scope) {
+        symbolTable[lastFunctionIdx].hasReturn = true;
+    } else {
+        printf("blockIdx: %d, function scope: %d\n", blockIdx, symbolTable[lastFunctionIdx].scope);
+        printf("Errorxx: Function %s is not in the current scope at line %i\n", symbolTable[lastFunctionIdx].name, lineNumber);
+        exit(1);
+    }
+}
+
+void checkLastFunctionReturnType(int lineNumber) {
+    if (lastFunctionIdx == -1) {
+        printf("Error: No function in scope to check return type at line %i\n", lineNumber);
+        exit(1);
+    }
+
+    if (!symbolTable[lastFunctionIdx].hasReturn) {
+        printf("Error: Function %s does not have a return statement at line %i\n",
+               symbolTable[lastFunctionIdx].name, lineNumber);
+        exit(1);
+    }
 }
 
 void checkInitialized(char *name, int lineNumber) {
@@ -222,8 +288,6 @@ void validateFunctionCall(char* functionName, char** argumentTypes, int argument
                functionName, symbolTable[funcIdx].paramCount, argumentCount, lineNumber);
         exit(1);
     }
-
-    printSymbolTable(); // Print the symbol table for debugging
 
     for (int i = 0; i < argumentCount; ++i) {
         int paramId = symbolTable[funcIdx].paramsIds[i];

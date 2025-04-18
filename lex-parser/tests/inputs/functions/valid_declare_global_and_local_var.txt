@@ -1,0 +1,6 @@
+int x = 0;
+
+func void test() {
+    int x = 0;
+    return ;
+}
