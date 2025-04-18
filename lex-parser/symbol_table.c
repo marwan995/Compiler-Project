@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-
+#include "parser.h"
 #define MAX_SYMBOLS 1000
 #define MAX_PARAMS 20
 
@@ -28,6 +28,7 @@ Symbol symbolTable[MAX_SYMBOLS];
 
 int blockIdx = -1; 
 int lastFunctionIdx = -1; 
+char error_msg[256];
 
 typedef struct ArgList {
     char** types;
@@ -243,10 +244,11 @@ void checkLastFunctionReturnType(int lineNumber) {
         printf("Error: No function in scope to check return type at line %i\n", lineNumber);
         exit(1);
     }
-
     if (!symbolTable[lastFunctionIdx].hasReturn) {
-        printf("Error: Function %s does not have a return statement at line %i\n",
+        snprintf(error_msg, sizeof(error_msg), 
+                 "Function %s does not have a return statement at line %d",
                symbolTable[lastFunctionIdx].name, lineNumber);
+        yyerror(error_msg);
         exit(1);
     }
 }

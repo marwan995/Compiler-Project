@@ -4,7 +4,7 @@
     #include <stdarg.h>
     
     #include "y.tab.h"
-    
+    #include "parser.h" // Include the header
     #include "symbol_table.c"
     #include "quadruples.c"
     #include "checkers.c"
@@ -12,7 +12,7 @@
 
     extern FILE *yyin;
     extern int yylineno;
-
+    extern char *yytext;
     int yylex(void);
 
     void yyerror(char *s);
@@ -269,7 +269,31 @@ const_value:
 %%
 
 void yyerror(char *s) {
-    fprintf(stderr, "Error: %s\n", s);
+    // Get the current token from the lexer
+    char *token = yytext;
+    // Store the current file position to restore it later
+    long file_pos = ftell(yyin);
+    
+    // Rewind to the beginning of the file to read the line
+    rewind(yyin);
+    
+    // Read lines until we reach the error line
+    char line[1024]; // Buffer for the line (adjust size as needed)
+    int current_line = 1;
+    while (current_line <= yylineno && fgets(line, sizeof(line), yyin)) {
+        if (current_line == yylineno) {
+            // Remove trailing newline for clean output
+            line[strcspn(line, "\n")] = 0;
+            fprintf(stderr, "Error at line %d: %s near '%s'\n", yylineno, s, token);
+            fprintf(stderr, "Line: %s\n", line);
+            break;
+        }
+        current_line++;
+    }
+    
+    // Restore the file position
+    fseek(yyin, file_pos, SEEK_SET);
+    
     exit(1);
 }
 
