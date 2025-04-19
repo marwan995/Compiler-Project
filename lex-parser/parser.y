@@ -8,13 +8,13 @@
     #include "symbol_table.c"
     #include "quadruples.c"
     #include "checkers.c"
-    
+    #include "utils.h"
 
     extern FILE *yyin;
     extern int yylineno;
     extern char *yytext;
     int yylex(void);
-
+    void yywarn(char *s); // Declare yywarn
     void yyerror(char *s);
 %}
 
@@ -136,7 +136,7 @@ case_list:
 block_structure: 
     '{' { enterScope(yylineno); printParms();} 
     statement_list  
-    '}' { exitScope(yylineno); }
+    '}' {checkForUnusedVars(); exitScope(yylineno);  }
     ;
     
 /*--------------------------------------------------------------------------*/
@@ -144,7 +144,7 @@ block_structure:
 /*--------------------------------------------------------------------------*/
 
 for_loop_init:
-    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1, yylineno), $3); validateNotConst($1, yylineno); insertForLoopVar($1, "var", NULL, yylineno);}
+    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1, yylineno); insertForLoopVar($1, "var", NULL, yylineno);}
     | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4) ? insertForLoopVar($2, "var", $1, yylineno): yyerror("Type mismatch in assignment");  }
     ;
 
@@ -193,18 +193,18 @@ default_params:
 /*--------------------------------------------------------------------------*/
 
 var_declare:
-    type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno);}
-    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertVarConst($3, "const", $2, true,yylineno); }
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno): yyerror("Type mismatch in assignment"); }
+    type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno); quadDefineVar($2); }
+    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertVarConst($3, "const", $2, true,yylineno); quadDefineVar($3); quadPop($3);}
+    | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno): yyerror("Type mismatch in assignment"); quadDefineVar($2); }
     ;
 
 assign_expression:
-    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1, yylineno), $3); validateNotConst($1, yylineno); }
+    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1, yylineno); setVarUsed($1); }
     ;
 
 expression:
-    const_value { }
-    | VARIABLE { checkInitialized($1, yylineno);$$ = createNode(getSymbolDataType($1, yylineno)); }
+    const_value {}
+    | VARIABLE { checkInitialized($1, yylineno);$$ = createNode(getSymbolDataType($1)); setVarUsed($1); }
     | operation_expressions
 ;    
 
@@ -226,15 +226,15 @@ operation_expressions:
     | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); handleOperation("AND"); }
     | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("OR"); }
     | '(' expression ')'          {$$ = $2; }
-    | VARIABLE '(' argument_list ')' { validateFunctionCall($1,$3->types,$3->count,yylineno); $$ = createNode(getSymbolDataType($1, yylineno)); }
+    | VARIABLE '(' argument_list ')' { validateFunctionCall($1,$3->types,$3->count,yylineno); $$ = createNode(getSymbolDataType($1)); }
     | unary_operations
     ;
 
 unary_operations:
-    INC VARIABLE { Node* node = createNode(getSymbolDataType($2, yylineno)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno);}
-    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2, yylineno)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno); }
-    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1, yylineno)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno); }
-    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1, yylineno)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno);}
+    INC VARIABLE { Node* node = createNode(getSymbolDataType($2)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno);}
+    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno); }
+    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno); }
+    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno);}
     ;
 
 
@@ -263,27 +263,24 @@ const_value:
     | FLOAT_VALUE             { $$ = createFloatNode(yylval.fValue); }
     | BOOL_VALUE              { $$ = createBoolNode(yylval.bValue); }
     | CHAR_VALUE              { $$ = createCharNode(yylval.cValue); }
-    | STRING_VALUE            { $$ = createStringNode(yylval.sValue); } 
+    | STRING_VALUE            { $$ = createStringNode(yylval.sValue);  quadPush(yylval.sValue); } 
     ;
 
 %%
 
 void yyerror(char *s) {
-    // Get the current token from the lexer
     char *token = yytext;
-    // Store the current file position to restore it later
     long file_pos = ftell(yyin);
     
-    // Rewind to the beginning of the file to read the line
     rewind(yyin);
     
-    // Read lines until we reach the error line
-    char line[1024]; // Buffer for the line (adjust size as needed)
+    char line[1024];
     int current_line = 1;
     while (current_line <= yylineno && fgets(line, sizeof(line), yyin)) {
         if (current_line == yylineno) {
-            // Remove trailing newline for clean output
             line[strcspn(line, "\n")] = 0;
+            fprintf(syntaxErrorsFileHandler.filePointer, "Error at line %d: %s near '%s'\n", yylineno, s, token);
+            fprintf(syntaxErrorsFileHandler.filePointer, "Line: %s\n", line);
             fprintf(stderr, "Error at line %d: %s near '%s'\n", yylineno, s, token);
             fprintf(stderr, "Line: %s\n", line);
             break;
@@ -291,14 +288,40 @@ void yyerror(char *s) {
         current_line++;
     }
     
-    // Restore the file position
     fseek(yyin, file_pos, SEEK_SET);
     
     exit(1);
 }
+void yywarn(char *s) {
+    fprintf(warningFileHandler.filePointer, "Warning at line %d: %s near token '%s'\n", yylineno, s, yytext ? yytext : "<none>");
+    fprintf(stdout, "Warning at line %d: %s near token '%s'\n", yylineno, s, yytext ? yytext : "<none>");
+
+    if (yyin && !feof(yyin)) {
+        long file_pos = ftell(yyin);
+        rewind(yyin);
+        
+        char line[256];
+        int current_line = 1;
+        while (current_line <= yylineno && fgets(line, sizeof(line), yyin)) {
+            if (current_line == yylineno) {
+                line[strcspn(line, "\n")] = 0;
+                fprintf(warningFileHandler.filePointer, "Line: %s\n", line);
+                fprintf(stdout, "Line: %s\n", line);
+
+                break;
+            }
+            current_line++;
+        }
+        
+        fseek(yyin, file_pos, SEEK_SET);
+    }
+}
 
 int main(int argc, char *argv[]) {
-     set_file_path("quads.txt");
+    setFiles();
+    
+
+    initSymbolTable();
     if (argc > 1) {
         FILE *file = fopen(argv[1], "r");
         if (!file) {
@@ -311,7 +334,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         fclose(yyin);
     }
-    close_file();
+    cleanUpFiles();
     printSymbolTable(); 
     return result;
 }

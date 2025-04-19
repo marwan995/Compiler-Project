@@ -18,3 +18,5 @@ make clean
 # run tests 
 make test
 ```
+-  unused variables.
+- we may add a condition to check that the function have return for all its block structure children

@@ -1,0 +1,6 @@
+func int x (){
+    int y =8;
+    int z=3;
+    int a = z+3;
+    return a;
+}

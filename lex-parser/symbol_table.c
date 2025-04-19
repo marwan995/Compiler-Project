@@ -17,7 +17,8 @@ typedef struct Symbol {
     int scope; // 0 for global
     bool isInitialized;
     bool isForLoop;
-
+    bool isUsed; // used in the code
+    
     int paramCount; // number of parameters for functions
     int* paramsIds;
     bool isParam;
@@ -35,11 +36,20 @@ typedef struct ArgList {
     int count;
 } ArgList;
 
-void initSymbolTable(int lineNumber) {
-    printf("Initializing symbol table at line: %i...\n", lineNumber);
+void initSymbolTable() {
     blockIdx = 0;
     for (int i = 0; i < MAX_SYMBOLS; i++) {
         symbolTable[i].id = -1;
+    }
+}
+
+void printSymbolTable() {
+    printf("Symbol Table:\n");
+    printf("ID\tName\tType\tDataType\tScope\tInitialized\n");
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (symbolTable[i].id != -1) {
+            printf("%d\t%s\t%s\t%s\t%d\t%d\n", symbolTable[i].id, symbolTable[i].name, symbolTable[i].type, symbolTable[i].dataType, symbolTable[i].scope, symbolTable[i].isInitialized);
+        }
     }
 }
 
@@ -78,6 +88,16 @@ int isSymbolInSameScope(char *name) {
     return 0;
 }
 
+
+void checkForUnusedVars() {
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (symbolTable[i].id != -1 && symbolTable[i].scope == blockIdx && !symbolTable[i].isUsed && strcmp(symbolTable[i].type, "func") != 0) {
+            snprintf(error_msg, sizeof(error_msg), "Variable %s is declared but not used\n", symbolTable[i].name);
+            yywarn(error_msg);
+        }
+    }
+}
+
 bool insertParamToFunction(int functionIdx, int paramIdx) {
     if (symbolTable[functionIdx].paramCount >= MAX_PARAMS) {
         printf("Error: Maximum number of parameters exceeded for function %s\n", symbolTable[functionIdx].name);
@@ -95,21 +115,32 @@ void initParams(int functionIdx) {
     }
 }
 
-int lookup(char *name, int lineNumber) {
-    printf("Looking up symbol: %s at line: %i...\n", name, lineNumber);
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        if (symbolTable[i].id != -1 && strcmp(symbolTable[i].name, name) == 0) {
-            printf("Found symbol: %s, id: %i\n", name, symbolTable[i].id);
-            return symbolTable[i].id;
-        }
-    }
+int lookup(char *name) {
+    int currentScope = blockIdx;
+    while( currentScope >= 0) {
+        for (int i = 0; i < MAX_SYMBOLS; i++) {
+            int equalScope = currentScope;
+            if(symbolTable[i].id != -1 && (symbolTable[i].isParam || symbolTable[i].isForLoop)) {
+                equalScope += 1;
+            }
 
+            if (symbolTable[i].id != -1 && symbolTable[i].scope == equalScope && strcmp(symbolTable[i].name, name) == 0) {
+                printf("Found symbol: %s, id: %i\n", name, symbolTable[i].id);
+                return symbolTable[i].id;
+            }
+        }
+        currentScope--;
+    }
     printf("Symbol %s not found\n", name);
     exit(1);
 }
 
-char* getSymbolDataType(char *name, int lineNumber) {
-    int id = lookup(name, lineNumber);
+void setVarUsed(char *name) {
+    int idx = lookup(name);
+    symbolTable[idx].isUsed = true;
+}
+char* getSymbolDataType(char *name) {
+    int id = lookup(name);
     if (id < 0 || id >= MAX_SYMBOLS || symbolTable[id].id == -1) {
         printf("Error: Invalid symbol ID %d\n", id);
         exit(1);
@@ -118,9 +149,6 @@ char* getSymbolDataType(char *name, int lineNumber) {
 }
 
 int insertSymbol(char *name, char* type, char* dataType, bool isInitialized, bool isParam, bool isForLoop, int lineNumber) {
-    if (blockIdx == -1) {
-        initSymbolTable(lineNumber);
-    }
     printf("Adding symbol: %s, type: %s, dataType: %s, at line: %i\n", name, type, dataType, lineNumber);
 
     if (isSymbolInSameScope(name)) {
@@ -184,7 +212,7 @@ int insertFunc(char *name, char* type, char* dataType, int lineNumber) {
 
 int insertForLoopVar(char *name, char* type, char* dataType, int lineNumber) {
     if(dataType == NULL){
-        dataType = getSymbolDataType(name, lineNumber);
+        dataType = getSymbolDataType(name);
         if(strcmp(dataType, "int") != 0){
             printf("Error: For loop variable %s must be of type int at line %i\n", name, lineNumber);
             exit(1);
@@ -267,18 +295,8 @@ void checkInitialized(char *name, int lineNumber) {
     }
 }
 
-void printSymbolTable() {
-    printf("Symbol Table:\n");
-    printf("ID\tName\tType\tDataType\tScope\tInitialized\n");
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        if (symbolTable[i].id != -1) {
-            printf("%d\t%s\t%s\t%s\t%d\t%d\n", symbolTable[i].id, symbolTable[i].name, symbolTable[i].type, symbolTable[i].dataType, symbolTable[i].scope, symbolTable[i].isInitialized);
-        }
-    }
-}
-
 void validateFunctionCall(char* functionName, char** argumentTypes, int argumentCount, int lineNumber) {
-    int funcIdx = lookup(functionName, lineNumber);
+    int funcIdx = lookup(functionName);
 
     if (strcmp(symbolTable[funcIdx].type, "func") != 0) {
         printf("Error: %s is not a function (line %d)\n", functionName, lineNumber);
