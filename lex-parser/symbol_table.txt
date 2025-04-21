@@ -1,0 +1,5 @@
+ID	Name	Type	DataType	Scope	Initialized
+0	add	func	int	0	0
+1	a	param	int	1	0
+2	b	param	int	1	0
+3	x	func	void	0	0

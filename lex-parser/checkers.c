@@ -4,44 +4,44 @@
 
 #include "node.h"
 
-bool validateAssignmentType(char* type, Node* expr) {
-    if (strcmp(expr->type,type) == 0) {
+bool validateAssignmentType(char* dataType, Node* expr) {
+    printf("Validating assignment type: %s\n", dataType);
+    if (strcmp(expr->dataType, dataType) == 0) {
         return true;
     } 
     return false;
 }
 
-Node* getNode(char* type) {
+Node* getNode(char* dataType) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     if (newNode == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(EXIT_FAILURE);
     }
-    newNode->type = strdup(type);
-
+    newNode->dataType = strdup(dataType);
     return newNode;
 }
 
 Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
-    if (strcmp(expr1->type, expr2->type) == 0 
-        && strcmp(expr1->type, "void") != 0 && strcmp(expr1->type, "string") != 0) {
-        return getNode(expr1->type);
-    } else if ((strcmp(expr1->type, "int") == 0 && strcmp(expr2->type, "float") == 0) ||
-               (strcmp(expr1->type, "float") == 0 && strcmp(expr2->type, "int") == 0)) {
+    if (strcmp(expr1->dataType, expr2->dataType) == 0 
+        && strcmp(expr1->dataType, "void") != 0 && strcmp(expr1->dataType, "string") != 0) {
+        return getNode(expr1->dataType);
+    } else if ((strcmp(expr1->dataType, "int") == 0 && strcmp(expr2->dataType, "float") == 0) ||
+               (strcmp(expr1->dataType, "float") == 0 && strcmp(expr2->dataType, "int") == 0)) {
         return getNode("float");
-    } else if ((strcmp(expr1->type, "int") == 0 && strcmp(expr2->type, "char") == 0) ||
-               (strcmp(expr1->type, "char") == 0 && strcmp(expr2->type, "int") == 0)) {
+    } else if ((strcmp(expr1->dataType, "int") == 0 && strcmp(expr2->dataType, "char") == 0) ||
+               (strcmp(expr1->dataType, "char") == 0 && strcmp(expr2->dataType, "int") == 0)) {
         return getNode("int");
-    } else if ((strcmp(expr1->type, "bool") == 0 && strcmp(expr2->type, "bool") == 0)) {
+    } else if ((strcmp(expr1->dataType, "bool") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
         return getNode("int");
-    } else if ((strcmp(expr1->type, "bool") == 0 && strcmp(expr2->type, "int") == 0) ||
-               (strcmp(expr1->type, "int") == 0 && strcmp(expr2->type, "bool") == 0)) {
+    } else if ((strcmp(expr1->dataType, "bool") == 0 && strcmp(expr2->dataType, "int") == 0) ||
+               (strcmp(expr1->dataType, "int") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
         return getNode("int");
-    } else if ((strcmp(expr1->type, "bool") == 0 && strcmp(expr2->type, "float") == 0) ||
-               (strcmp(expr1->type, "float") == 0 && strcmp(expr2->type, "bool") == 0)) {
+    } else if ((strcmp(expr1->dataType, "bool") == 0 && strcmp(expr2->dataType, "float") == 0) ||
+               (strcmp(expr1->dataType, "float") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
         return getNode("float");
     }
-    printf("Error: Type mismatch between %s and %s\n", expr1->type, expr2->type);
+    printf("Error: Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
     exit(1);
 }
 
@@ -49,10 +49,10 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
     const char* invalidTypes[] = {"void", "string", "char"};
 
     for(int i = 0; i < 3; i++) {
-        if ((strcmp(expr1->type, invalidTypes[i]) == 0 || strcmp(expr2->type, invalidTypes[i]) == 0) &&
-            (strcmp(expr1->type, expr2->type) != 0)) {
-                printf("Error: Invalid expr1 type for comparison: %s %s\n", expr1->type, expr2->type);
-            printf("Error: Invalid type for comparison: %s\n", invalidTypes[i]);
+        if ((strcmp(expr1->dataType, invalidTypes[i]) == 0 || strcmp(expr2->dataType, invalidTypes[i]) == 0) &&
+            (strcmp(expr1->dataType, expr2->dataType) != 0)) {
+                printf("Error: Invalid expr1 dataType for comparison: %s %s\n", expr1->dataType, expr2->dataType);
+            printf("Error: Invalid dataType for comparison: %s\n", invalidTypes[i]);
             exit(1);
         }
     }
@@ -61,12 +61,12 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
 }
 
 Node* checkUnaryOperationTypes (Node* expr) {
-    if (strcmp(expr->type, "int") == 0 || strcmp(expr->type, "float") == 0 || strcmp(expr->type, "bool") == 0) {
-        return getNode(expr->type);
-    } else if (strcmp(expr->type, "char") == 0) {
+    if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "float") == 0 || strcmp(expr->dataType, "bool") == 0) {
+        return getNode(expr->dataType);
+    } else if (strcmp(expr->dataType, "char") == 0) {
         return getNode("int");
     } else {
-        printf("Error: Invalid type for unary operation: %s\n", expr->type);
+        printf("Error: Invalid dataType for unary operation: %s\n", expr->dataType);
         exit(1);
     }
     return NULL;

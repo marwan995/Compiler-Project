@@ -9,6 +9,8 @@ typedef struct Node {
     char *sValue;        /* string value */
 
     char *type;
+    char *dataType;
+    char *name;
 } Node;
 
 #endif

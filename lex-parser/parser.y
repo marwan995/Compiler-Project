@@ -14,8 +14,9 @@
     extern int yylineno;
     extern char *yytext;
     int yylex(void);
-    void yywarn(char *s); // Declare yywarn
+    void yywarn(char *s,int line); // Declare yywarn
     void yyerror(char *s);
+    int isError = 0;
 %}
 
 %union {
@@ -144,7 +145,7 @@ block_structure:
 /*--------------------------------------------------------------------------*/
 
 for_loop_init:
-    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1, yylineno); insertForLoopVar($1, "var", NULL, yylineno);}
+    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); insertForLoopVar($1, "var", NULL, yylineno);}
     | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4) ? insertForLoopVar($2, "var", $1, yylineno): yyerror("Type mismatch in assignment");  }
     ;
 
@@ -154,7 +155,7 @@ for_loop_expression:
     ;
 
 return_statement:
-    RETURN expression SEMICOLON { validateReturnType($2->type, yylineno); markFunctionReturnType(yylineno); }
+    RETURN expression SEMICOLON { validateReturnType($2->dataType, yylineno); markFunctionReturnType(yylineno); }
     | RETURN SEMICOLON { validateReturnType("void", yylineno); markFunctionReturnType(yylineno); }
     ;
 
@@ -163,8 +164,8 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure { checkLastFunctionReturnType(yylineno); }
-    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   { checkLastFunctionReturnType(yylineno); }
+    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1; }
+    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
     ;
 
 params:
@@ -193,58 +194,64 @@ default_params:
 /*--------------------------------------------------------------------------*/
 
 var_declare:
-    type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno); quadDefineVar($2); }
-    | CONSTANT type VARIABLE ASSIGN expression /*int const x = 1*/ { insertVarConst($3, "const", $2, true,yylineno); quadDefineVar($3); quadPop($3);}
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno): yyerror("Type mismatch in assignment"); quadDefineVar($2); }
+    type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno);  }
+    | CONSTANT type VARIABLE ASSIGN expression { 
+                                                    validateAssignmentType($2, $5) ? insertVarConst($3, "const", $2, true,yylineno) : yyerror("Type mismatch in assignment");
+                                                    quadAssign($3, $5);
+                                                }
+    | type VARIABLE ASSIGN expression { 
+                                        validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
+                                        quadAssign($2, $4);
+                                      }
     ;
 
 assign_expression:
-    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1, yylineno); setVarUsed($1); }
+    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); setVarUsed($1); quadAssign($1, $3);}
     ;
 
 expression:
-    const_value {}
-    | VARIABLE { checkInitialized($1, yylineno);$$ = createNode(getSymbolDataType($1)); setVarUsed($1); }
-    | operation_expressions
+    const_value { quadPushConst($1);}
+    | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); quadPushVar($1); }
+    | operation_expressions 
 ;    
 
 operation_expressions:
-    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); handleOperation("NOT"); }
-    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); handleOperation("ADD"); }
-    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); handleOperation("SUB"); }
-    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); handleOperation("MUL"); }
-    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); handleOperation("DIV"); }
-    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); handleOperation("MOD"); }
+    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); quadOperation("NOT"); }
+    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("ADD"); }
+    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("SUB"); }
+    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("MUL"); }
+    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("DIV"); }
+    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("MOD"); }
 
-    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("LT"); }
-    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("GT"); }
-    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("GE"); }
-    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("LE"); }
-    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("EQ"); }
-    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("NE"); }
+    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("LT"); }
+    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("GT"); }
+    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("GE"); }
+    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("LE"); }
+    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("EQ"); }
+    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("NE"); }
 
-    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); handleOperation("AND"); }
-    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); handleOperation("OR"); }
+    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); quadOperation("AND"); }
+    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("OR"); }
     | '(' expression ')'          {$$ = $2; }
-    | VARIABLE '(' argument_list ')' { validateFunctionCall($1,$3->types,$3->count,yylineno); $$ = createNode(getSymbolDataType($1)); }
+    | VARIABLE '(' argument_list ')' { validateFunctionCall($1,$3->types,$3->count); $$ = createNode(getSymbolDataType($1), "func"); }
     | unary_operations
     ;
 
 unary_operations:
-    INC VARIABLE { Node* node = createNode(getSymbolDataType($2)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno);}
-    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($2, yylineno); validateNotConst($2, yylineno); }
-    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1)); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno); }
-    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1)); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($1, yylineno); validateNotConst($1, yylineno);}
+    INC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($2, yylineno); validateNotConst($2);}
+    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($2, yylineno); validateNotConst($2); }
+    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($1, yylineno); validateNotConst($1); }
+    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($1, yylineno); validateNotConst($1);}
     ;
 
 
 argument_list:
     expression {
         $$ = createArgList();
-        addArgType($$, $1->type);
+        addArgType($$, $1->dataType);
     }
     | argument_list ',' expression {
-        addArgType($1, $3->type);
+        addArgType($1, $3->dataType);
         $$ = $1;    
     }
 
@@ -263,11 +270,10 @@ const_value:
     | FLOAT_VALUE             { $$ = createFloatNode(yylval.fValue); }
     | BOOL_VALUE              { $$ = createBoolNode(yylval.bValue); }
     | CHAR_VALUE              { $$ = createCharNode(yylval.cValue); }
-    | STRING_VALUE            { $$ = createStringNode(yylval.sValue);  quadPush(yylval.sValue); } 
+    | STRING_VALUE            { $$ = createStringNode(yylval.sValue);  } 
     ;
 
 %%
-
 void yyerror(char *s) {
     char *token = yytext;
     long file_pos = ftell(yyin);
@@ -289,24 +295,30 @@ void yyerror(char *s) {
     }
     
     fseek(yyin, file_pos, SEEK_SET);
-    
-    exit(1);
-}
-void yywarn(char *s) {
-    fprintf(warningFileHandler.filePointer, "Warning at line %d: %s near token '%s'\n", yylineno, s, yytext ? yytext : "<none>");
-    fprintf(stdout, "Warning at line %d: %s near token '%s'\n", yylineno, s, yytext ? yytext : "<none>");
+    if(strcmp(s, "syntax error") == 0) {
 
+        exit(1); 
+    }
+    isError = 1;
+}
+void yywarn(char *s, int line) {
+    
+    int warning_line = (line > 0) ? line : yylineno;    
+    fprintf(warningFileHandler.filePointer, "Warning at line %d: %s near token '%s'\n", warning_line, s, yytext ? yytext : "<none>");
+    printf("Warning at line %d: %s near token '%s'\n", warning_line, s, yytext ? yytext : "<none>");
+    
     if (yyin && !feof(yyin)) {
         long file_pos = ftell(yyin);
         rewind(yyin);
         
         char line[256];
         int current_line = 1;
-        while (current_line <= yylineno && fgets(line, sizeof(line), yyin)) {
-            if (current_line == yylineno) {
+        while (current_line <= warning_line && fgets(line, sizeof(line), yyin)) {
+            if (current_line == warning_line) {
                 line[strcspn(line, "\n")] = 0;
+
                 fprintf(warningFileHandler.filePointer, "Line: %s\n", line);
-                fprintf(stdout, "Line: %s\n", line);
+                printf("Line: %s\n", line);
 
                 break;
             }
@@ -334,7 +346,11 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         fclose(yyin);
     }
+
     cleanUpFiles();
     printSymbolTable(); 
+    if (isError) {
+        exit(1); 
+    }
     return result;
 }

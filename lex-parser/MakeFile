@@ -40,9 +40,10 @@ run: $(TARGET).exe
 test: clean build
 	 cd tests && pytest conftest.py -v --exe=../$(TARGET).exe
 
-
 # Clean generated files
 clean:
 	-del /Q $(TARGET).exe $(LEX_OUT) $(YACC_OUT) $(YACC_HEADER) *.exe 2>nul
 
+gui: clean build
+	 py gui.py
 .PHONY: all build clean run

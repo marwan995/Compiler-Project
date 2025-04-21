@@ -50,4 +50,14 @@ void cleanUpFiles() {
     closeFile(&syntaxErrorsFileHandler);
 }
 
+void customError(char* format, ...) {
+    char error_msg[256];
+    va_list args;
+
+    va_start(args, format);
+    vsnprintf(error_msg, sizeof(error_msg), format, args);
+    va_end(args);
+
+    yyerror(error_msg);
+}
 #endif // UTILS_H
