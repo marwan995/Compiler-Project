@@ -8,26 +8,13 @@
 
 #define MAX_Conditions 100
 
-int conditionCounter = 0;
-int labelCounter = 0;
+int conditionCounter = 1;
 
-int jumpFalseIndex = 0;
-int jumpIndex = 0;
+int jumpIndex = -1;
 
-int jumpFalseLabels[MAX_Conditions];
 int jumpLabels[MAX_Conditions];
 
 
-char* generateLabel() {
-    char* label = (char*)malloc(20 * sizeof(char));
-    snprintf(label, 20, "L%d", labelCounter++);
-    return label;
-}
-char* currentLabel(){
-    char* label = (char*)malloc(20 * sizeof(char));
-    snprintf(label, 20, "L%d", labelCounter);
-    return label;
-}
 void handleOperation(const char* operation) {
     fprintf(quadFileHandler.filePointer, "\t%s\n", operation);
 }
@@ -75,22 +62,26 @@ void quadAssign(const char* name, Node* value) {
     return;
 }
 
-void quadJumpFalse(const char* label) {
-    if (label == NULL) {
-        fprintf(stderr, "Label is NULL\n");
-        return;
-    }
-    fprintf(quadFileHandler.filePointer, "\tjf %s\n", label);
+void quadPrint() {
+    fprintf(quadFileHandler.filePointer, "\tprint\n");
 }
 
-void quadJump(const char* label) {
-    if (label == NULL) {
-        fprintf(stderr, "Label is NULL\n");
-        return;
-    }
-    fprintf(quadFileHandler.filePointer, "\tjump %s\n", label);
+void quadJumpFalse() {
+    jumpLabels[++jumpIndex] = conditionCounter++;
+    fprintf(quadFileHandler.filePointer, "\tjf FALSE_LABEL%i\n", jumpLabels[jumpIndex]);
 }
 
+void quadJump() {
+    fprintf(quadFileHandler.filePointer, "\tjump LABEL%i\n", jumpLabels[jumpIndex]);
+}
+
+void quadFalseLabel() {
+    fprintf(quadFileHandler.filePointer, "FALSE_LABEL%i:\n", jumpLabels[jumpIndex]);
+}
+
+void quadLabel() {
+    fprintf(quadFileHandler.filePointer, "LABEL%i:\n", jumpLabels[jumpIndex--]);
+}
 
 Node* createNode(char* dataType, char* type) {
     Node* node = (Node*)malloc(sizeof(Node));

@@ -90,6 +90,10 @@ void exitScope(int lineNumber) {
 }
 
 bool checkPramsForFunction(char*name){
+    if(insideFunctionIdx < 0) {
+        return false;
+    }
+
     if (symbolTable[insideFunctionIdx].id == -1) {
         return false; // No function in scope
     }
@@ -110,6 +114,7 @@ int isSymbolInSameScope(char *name) {
     if (checkPramsForFunction(name)) {
         return 1; // Parameter found in the function
     }
+    
     // TODO: We need to stop at last function scope
     for (int i = 0; i < MAX_SYMBOLS; i++) {
         if (symbolTable[i].id != -1 && strcmp(symbolTable[i].type, "func") == 0 

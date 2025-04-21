@@ -99,7 +99,7 @@ statement_list:
 statement:
     var_declare SEMICOLON {}
     | expression SEMICOLON {  }
-    | PRINT '(' expression ')' SEMICOLON {  }
+    | PRINT '(' expression ')' SEMICOLON { quadPrint(); }
     | if_statement {}
     | WHILE '(' expression ')' block_structure {  }
     | DO block_structure WHILE '(' expression ')' SEMICOLON {  }
@@ -114,12 +114,12 @@ statement:
     ;  
 
 if_statement:
-    IF '(' expression ')'  { } block_structure else_block {  }
+    IF '(' expression ')' { quadJumpFalse(); } block_structure { quadJump(); quadFalseLabel();} else_block { quadLabel(); }
 
 else_block:
-    ELSE block_structure { }
-    | ELSE if_statement { }
-    |
+    ELSE {  } block_structure {  }
+    | ELSE { } if_statement { }
+    | { } 
     ;
 
 case_list: 

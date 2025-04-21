@@ -14,3 +14,4 @@
 	ADD
 	pop i
 	push sum
+	print
