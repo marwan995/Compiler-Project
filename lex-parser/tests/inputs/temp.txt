@@ -1,6 +1,6 @@
 func void test() {
     int x = 0;
-    int y = x + 1;
-    int z = 1 + y * 2;
-    return ;
+    if(x == 1) {
+        
+    }
 }

@@ -114,14 +114,13 @@ statement:
     ;  
 
 if_statement:
-    IF '(' expression ')' block_structure %prec IFX {  }
-    | IF '(' expression ')' block_structure ELSE else_block {  };
+    IF '(' expression ')'  { } block_structure else_block {  }
 
 else_block:
-    block_structure {}
-    | if_statement {  }
+    ELSE block_structure { }
+    | ELSE if_statement { }
+    |
     ;
-    
 
 case_list: 
     case_list CASE const_value ':' block_structure {  }
