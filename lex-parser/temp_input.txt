@@ -1,2 +1,12 @@
-ID	Name	Type	DataType	Scope	Initialized
-0	testWhile_BigValid	func	void	0	0
+func int z(int a, int b, int c = 3, int d = 0) {
+    int x = 0;
+    return 0;
+}
+
+func void main() {
+    int x = 0;
+    int y = 0;
+
+    z(x, y);
+    return;
+}

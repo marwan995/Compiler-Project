@@ -1,0 +1,12 @@
+Warning at line 1: Variable b is declared but not used
+ near token '}'
+Warning at line 1: Variable c is declared but not used
+ near token '}'
+Warning at line 1: Variable d is declared but not used
+ near token '}'
+Warning at line 1: Variable b is declared but not used
+ near token '}'
+Warning at line 1: Variable c is declared but not used
+ near token '}'
+Warning at line 1: Variable d is declared but not used
+ near token '}'

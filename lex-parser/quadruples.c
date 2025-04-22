@@ -5,15 +5,18 @@
 
 #include "node.h"
 #include "utils.h"
+#include "symbol_table.c"
 
-#define MAX_Conditions 100
+#define MAX_Labels 100
 
-int conditionCounter = 1;
+int labelCounter = 1;
 
-int jumpIndex = -1;
+int ifIndex = -1;
+int loopIndex = -1;
 
-int jumpLabels[MAX_Conditions];
-
+int ifLabels[MAX_Labels];
+int loopLabels[MAX_Labels];
+int switchLabels[MAX_Labels];
 
 void handleOperation(const char* operation) {
     fprintf(quadFileHandler.filePointer, "\t%s\n", operation);
@@ -52,35 +55,102 @@ void quadPushVar(char* name) {
     fprintf(quadFileHandler.filePointer, "\tpush %s\n", name);
 }
 
-void quadOperation(const char* operation) {
+void quadOperation(char* operation) {
     fprintf(quadFileHandler.filePointer, "\t%s\n", operation);
 }
 
-void quadAssign(const char* name, Node* value) {
-    printf("we are in quadAssign\n");
+void quadPopVar(char* name) {
     fprintf(quadFileHandler.filePointer, "\tpop %s\n", name);
     return;
 }
+
+void quadPrefix(char* name, char* operation) {
+    quadPushVar(name);
+    quadPushVar("1");
+    quadOperation(operation);
+    quadPopVar(name);
+}
+
+void quadPostfix(char* name, char* operation) {
+    quadPushVar(name);
+    quadPopVar("_temp_");
+    quadPrefix(name, operation);
+    quadPushVar("_temp_");
+}
+
 
 void quadPrint() {
     fprintf(quadFileHandler.filePointer, "\tprint\n");
 }
 
-void quadJumpFalse() {
-    jumpLabels[++jumpIndex] = conditionCounter++;
-    fprintf(quadFileHandler.filePointer, "\tjf FALSE_LABEL%i\n", jumpLabels[jumpIndex]);
+void quadAddFunctionParams(char* name) {
+    int funcIdx = lookup(name);
+    printf("Function xx%s has %d parameters\n", name, symbolTable[funcIdx].paramCount);
+    for(int i = symbolTable[funcIdx].paramCount - 1; i >= 0; i--) {
+        fprintf(quadFileHandler.filePointer, "\tpop %s\n", symbolTable[symbolTable[funcIdx].paramsIds[i]].name);
+    }
 }
 
-void quadJump() {
-    fprintf(quadFileHandler.filePointer, "\tjump LABEL%i\n", jumpLabels[jumpIndex]);
+void quadFunctionLabel(char * name) {
+    fprintf(quadFileHandler.filePointer, "func_%s:\n", name);
+    fprintf(quadFileHandler.filePointer, "\tpop %s\n", "_call_");
 }
 
-void quadFalseLabel() {
-    fprintf(quadFileHandler.filePointer, "FALSE_LABEL%i:\n", jumpLabels[jumpIndex]);
+void quadJumpCall() {
+    fprintf(quadFileHandler.filePointer, "\tjmp _call_\n");
 }
 
-void quadLabel() {
-    fprintf(quadFileHandler.filePointer, "LABEL%i:\n", jumpLabels[jumpIndex--]);
+void quadFunctionCall(char * name, int argCount) {
+    int funcIdx = lookup(name);
+
+    for(int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
+        quadPushConst(symbolTable[symbolTable[funcIdx].paramsIds[i]].nodeValue);
+    }
+
+    fprintf(quadFileHandler.filePointer, "\tpush %s\n", "pc");
+    fprintf(quadFileHandler.filePointer, "\tpush %s\n", "2");
+    fprintf(quadFileHandler.filePointer, "\tadd\n");
+
+    fprintf(quadFileHandler.filePointer, "\tjmp func_%s\n", name);
+}
+
+void quadJumpFalse(int labelNum) {
+    fprintf(quadFileHandler.filePointer, "\tjf FALSE_LABEL%i\n", labelNum);
+}
+
+void quadJump(int labelNum) {
+    fprintf(quadFileHandler.filePointer, "\tjmp LABEL%i\n", labelNum);
+}
+
+void quadFalseLabel(int labelNum) {
+    fprintf(quadFileHandler.filePointer, "FALSE_LABEL%i:\n", labelNum);
+}
+
+void quadLabel(int labelNum) {
+    fprintf(quadFileHandler.filePointer, "LABEL%i:\n", labelNum);
+}
+
+void quadJumpFalseLabel(int labelNum) {
+    fprintf(quadFileHandler.filePointer, "\tjmp FALSE_LABEL%i\n", labelNum);
+}
+
+bool quadIsInLoop() {
+    return loopIndex != -1;
+}
+
+void quadLoopInit() {
+    loopLabels[++loopIndex] = labelCounter++;
+    quadLabel(loopLabels[loopIndex]);
+}
+
+void quadLoopBegin() {
+    loopLabels[++loopIndex] = labelCounter++;
+    quadJumpFalse(loopLabels[loopIndex]);
+}
+
+void quadLoopExit() {
+    quadJump(loopLabels[loopIndex - 1]);
+    quadFalseLabel(loopLabels[loopIndex]); loopIndex -= 2;
 }
 
 Node* createNode(char* dataType, char* type) {

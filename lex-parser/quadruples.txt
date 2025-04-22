@@ -1,2 +1,48 @@
+func_z:
+	pop _call_
+	pop d
+	pop c
+	pop b
+	pop a
 	push 0
 	pop x
+	push a
+	pop _temp_
+	push a
+	push 1
+	add
+	pop a
+	push _temp_
+	push 1
+	add
+	push a
+	add
+	pop x
+	push a
+	pop _temp_
+	push a
+	push 1
+	add
+	pop a
+	push _temp_
+	push a
+	push 1
+	add
+	pop a
+	push 0
+	jmp _call_
+func_main:
+	pop _call_
+	push 0
+	pop x
+	push 0
+	pop y
+	push x
+	push y
+	push 0
+	push 3
+	push pc
+	push 2
+	add
+	jmp func_z
+	jmp _call_

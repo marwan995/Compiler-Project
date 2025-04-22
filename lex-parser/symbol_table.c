@@ -1,8 +1,12 @@
+#ifndef __SYMBOL_TABLE_C__
+#define __SYMBOL_TABLE_C__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "parser.h"
+#include "node.h"
 #include "utils.h"
 #define MAX_SYMBOLS 10000
 #define MAX_PARAMS 200
@@ -16,7 +20,10 @@ typedef struct Symbol {
     char* type; // func, var, const, param
     char* dataType; // int, float, char, etc.
     int scope; // 0 for global
+    
     bool isInitialized;
+    Node* nodeValue;
+
     bool isForLoop;
     bool isUsed; // used in the code
     int symbolLine; // line number of the symbol declaration
@@ -245,8 +252,9 @@ int insertSymbol(char *name, char* type, char* dataType, bool isInitialized, boo
     exit(1);
 }
 
-void insertParam(char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
-    insertSymbol(name, type, dataType, isInitialized, true, false, lineNumber);
+void insertParam(char *name, char* type, char* dataType, bool isInitialized, Node* node, int lineNumber) {
+    int paramIdx = insertSymbol(name, type, dataType, isInitialized, true, false, lineNumber);
+    symbolTable[paramIdx].nodeValue = node;
 }
 
 void insertVarConst (char *name, char* type, char* dataType, bool isInitialized, int lineNumber) {
@@ -345,6 +353,17 @@ void checkInitialized(char *name, int lineNumber) {
     }
 }
 
+int getInitializedParamCount(int funcIdx) {
+    int count = 0;
+    for (int i = 0; i < symbolTable[funcIdx].paramCount; i++) {
+        int paramId = symbolTable[funcIdx].paramsIds[i];
+        if (symbolTable[paramId].isInitialized) {
+            count++;
+        }
+    }
+    return count;
+}
+
 void validateFunctionCall(char* functionName, char** argumentTypes, int argumentCount) {
     int funcIdx = lookup(functionName);
 
@@ -353,9 +372,11 @@ void validateFunctionCall(char* functionName, char** argumentTypes, int argument
         return;
     }
 
-    if (argumentCount != symbolTable[funcIdx].paramCount) {
-        customError("Function '%s' expects %d arguments, but %d were provided ",
-               functionName, symbolTable[funcIdx].paramCount, argumentCount);
+    int initializedParamCount = getInitializedParamCount(funcIdx);
+    int totalParamCount = symbolTable[funcIdx].paramCount;
+    if (argumentCount <  totalParamCount - initializedParamCount || argumentCount > totalParamCount) {
+        customError("Function '%s' expects at least %d arguments, but %d were provided ",
+               functionName, symbolTable[funcIdx].paramCount - initializedParamCount, argumentCount);
         return;
     }
 
@@ -392,3 +413,5 @@ void printParms(){
     }
     printf("End of parameters\n");
 }
+
+#endif

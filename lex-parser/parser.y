@@ -62,7 +62,7 @@
 %left ADD SUB
 %left MUL DIV MOD
 
-%type<sValue> type VARIABLE VOID
+%type<sValue> type VARIABLE VOID function_type
 
 %type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions  unary_operations
 %type <nPtr> non_default_params default_params assign_expression
@@ -101,20 +101,20 @@ statement:
     | expression SEMICOLON {  }
     | PRINT '(' expression ')' SEMICOLON { quadPrint(); }
     | if_statement {}
-    | WHILE '(' expression ')' block_structure {  }
-    | DO block_structure WHILE '(' expression ')' SEMICOLON {  }
-    | FOR '(' for_loop_init SEMICOLON expression SEMICOLON for_loop_expression ')' block_structure { printf( "for loop\n"); }
+    | WHILE { quadLoopInit(); } '(' expression ')' { quadLoopBegin(); } block_structure { quadLoopExit(); }
+    | DO { quadLoopInit(); } block_structure WHILE '(' expression ')' { quadLoopBegin(); } SEMICOLON { quadLoopExit(); }
+    | FOR '(' for_loop_init SEMICOLON { quadLoopInit(); } expression SEMICOLON { quadLoopBegin(); } for_loop_expression ')' block_structure { quadLoopExit(); }
     | SEMICOLON   {  }  /* empty statment */
-    | return_statement {}
-    | BREAK SEMICOLON {  }
-    | CONTINUE SEMICOLON {  }
+    | return_statement { quadJumpCall("_call_"); }
+    | BREAK SEMICOLON { quadIsInLoop() ? quadJumpFalseLabel(loopLabels[loopIndex]) : yyerror("break statement not in loop"); }
+    | CONTINUE SEMICOLON { quadIsInLoop() ? quadJump(loopLabels[loopIndex - 1]) : yyerror("continue statement not in loop"); }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
     | block_structure {}
     ;  
 
 if_statement:
-    IF '(' expression ')' { quadJumpFalse(); } block_structure { quadJump(); quadFalseLabel();} else_block { quadLabel(); }
+    IF '(' expression ')' { ifLabels[++ifIndex] = labelCounter++; quadJumpFalse(ifLabels[ifIndex]); } block_structure { quadJump(ifLabels[ifIndex]); quadFalseLabel(ifLabels[ifIndex]);} else_block { quadLabel(ifLabels[ifIndex--]); }
 
 else_block:
     ELSE {  } block_structure {  }
@@ -163,8 +163,7 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION VOID VARIABLE { insertFunc($3, "func", $2, yylineno); } '(' params ')' block_structure { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1; }
-    | FUNCTION type VARIABLE { insertFunc($3, "func", $2, yylineno); }'(' params ')' block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
+    FUNCTION function_type VARIABLE { insertFunc($3, "func", $2, yylineno); quadFunctionLabel($3);}'(' params ')' { quadAddFunctionParams($3); } block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
     ;
 
 params:
@@ -179,13 +178,13 @@ param_list:
 ;
 
 non_default_params:
-    type VARIABLE { insertParam($2, "param", $1, false, yylineno); }
-    | non_default_params ',' type VARIABLE { insertParam($4, "param", $3, false, yylineno); }
+    type VARIABLE { insertParam($2, "param", $1, false, NULL, yylineno); }
+    | non_default_params ',' type VARIABLE { insertParam($4, "param", $3, false, NULL, yylineno); }
 ;
 
 default_params:
-    type VARIABLE ASSIGN const_value { insertParam($2, "param", $1, true, yylineno); }
-    | default_params ',' type VARIABLE ASSIGN const_value { insertParam($4, "param", $3, true, yylineno); }
+    type VARIABLE ASSIGN const_value { insertParam($2, "param", $1, true, $4, yylineno); }
+    | default_params ',' type VARIABLE ASSIGN const_value { insertParam($4, "param", $3, true, $6, yylineno); }
 ;
 
 /*--------------------------------------------------------------------------*/
@@ -196,16 +195,16 @@ var_declare:
     type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno);  }
     | CONSTANT type VARIABLE ASSIGN expression { 
                                                     validateAssignmentType($2, $5) ? insertVarConst($3, "const", $2, true,yylineno) : yyerror("Type mismatch in assignment");
-                                                    quadAssign($3, $5);
+                                                    quadPopVar($3);
                                                 }
     | type VARIABLE ASSIGN expression { 
                                         validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
-                                        quadAssign($2, $4);
+                                        quadPopVar($2);
                                       }
     ;
 
 assign_expression:
-    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); setVarUsed($1); quadAssign($1, $3);}
+    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); setVarUsed($1); quadPopVar($1);}
     ;
 
 expression:
@@ -215,32 +214,36 @@ expression:
 ;    
 
 operation_expressions:
-    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); quadOperation("NOT"); }
-    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("ADD"); }
-    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("SUB"); }
-    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("MUL"); }
-    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("DIV"); }
-    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("MOD"); }
+    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); quadOperation("not"); }
+    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("add"); }
+    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("sub"); }
+    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("mul"); }
+    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("div"); }
+    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("mod"); }
 
-    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("LT"); }
-    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("GT"); }
-    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("GE"); }
-    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("LE"); }
-    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("EQ"); }
-    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("NE"); }
+    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("lt"); }
+    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("gt"); }
+    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("ge"); }
+    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("le"); }
+    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("eq"); }
+    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("ne"); }
 
-    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); quadOperation("AND"); }
-    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("OR"); }
+    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); quadOperation("and"); }
+    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("or"); }
     | '(' expression ')'          {$$ = $2; }
-    | VARIABLE '(' argument_list ')' { validateFunctionCall($1,$3->types,$3->count); $$ = createNode(getSymbolDataType($1), "func"); }
+    | VARIABLE '(' argument_list ')' { 
+                                        validateFunctionCall($1,$3->types,$3->count);
+                                        $$ = createNode(getSymbolDataType($1), "func");
+                                        quadFunctionCall($1, $3->count);
+                                    }
     | unary_operations
     ;
 
 unary_operations:
-    INC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($2, yylineno); validateNotConst($2);}
-    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($2, yylineno); validateNotConst($2); }
-    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("INC"); checkInitialized($1, yylineno); validateNotConst($1); }
-    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); handleOperation("DEC"); checkInitialized($1, yylineno); validateNotConst($1);}
+    INC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); quadPrefix($2, "add"); checkInitialized($2, yylineno); validateNotConst($2);}
+    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); quadPrefix($2, "sub"); checkInitialized($2, yylineno); validateNotConst($2); }
+    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); quadPostfix($1, "add"); checkInitialized($1, yylineno); validateNotConst($1); }
+    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); quadPostfix($1, "sub"); checkInitialized($1, yylineno); validateNotConst($1);}
     ;
 
 
@@ -253,6 +256,8 @@ argument_list:
         addArgType($1, $3->dataType);
         $$ = $1;    
     }
+    | { $$ = createArgList();}
+    ;
 
 /*--------------------------------------------------------------------------*/
 
@@ -262,6 +267,11 @@ type:
     | STRING                { }
     | CHAR                  { }
     | BOOL                  { }
+    ;
+
+function_type:
+    type                { }
+    | VOID                  {}
     ;
 
 const_value:
