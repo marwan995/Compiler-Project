@@ -7,6 +7,7 @@
     #include "parser.h" // Include the header
     #include "symbol_table.c"
     #include "quadruples.c"
+    #include "assembly.c"
     #include "checkers.c"
     #include "utils.h"
 
@@ -99,22 +100,39 @@ statement_list:
 statement:
     var_declare SEMICOLON {}
     | expression SEMICOLON {  }
-    | PRINT '(' expression ')' SEMICOLON { quadPrint(); }
+    | PRINT '(' expression ')' SEMICOLON { assemblyPrint(); }
     | if_statement {}
-    | WHILE { quadLoopInit(); } '(' expression ')' { quadLoopBegin(); } block_structure { quadLoopExit(); }
-    | DO { quadLoopInit(); } block_structure WHILE '(' expression ')' { quadLoopBegin(); } SEMICOLON { quadLoopExit(); }
-    | FOR '(' for_loop_init SEMICOLON { quadLoopInit(); } expression SEMICOLON { quadLoopBegin(); } for_loop_expression ')' block_structure { quadLoopExit(); }
+    | WHILE { assemblyLoopInit(); } '(' expression ')' { assemblyLoopBegin(); } block_structure { assemblyLoopExit(); }
+    | DO { assemblyLoopInit(); } block_structure WHILE '(' expression ')' { assemblyLoopBegin(); } SEMICOLON { assemblyLoopExit(); }
+    | FOR '(' for_loop_init SEMICOLON { assemblyLoopInit(); } expression SEMICOLON { assemblyLoopBegin(); } for_loop_expression ')' block_structure { assemblyLoopExit(); }
     | SEMICOLON   {  }  /* empty statment */
-    | return_statement { quadJumpCall("_call_"); }
-    | BREAK SEMICOLON { quadIsInLoop() ? quadJumpFalseLabel(loopLabels[loopIndex]) : yyerror("break statement not in loop"); }
-    | CONTINUE SEMICOLON { quadIsInLoop() ? quadJump(loopLabels[loopIndex - 1]) : yyerror("continue statement not in loop"); }
+    | return_statement { assemblyJumpCall("_call_"); }
+    | BREAK SEMICOLON { assemblyIsInLoop() ? assemblyJumpFalseLabel(loopLabels[loopIndex]) : yyerror("break statement not in loop"); }
+    | CONTINUE SEMICOLON { assemblyIsInLoop() ? assemblyJump(loopLabels[loopIndex - 1]) : yyerror("continue statement not in loop"); }
     | assign_expression SEMICOLON {  }
     | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
     | block_structure {}
     ;  
 
 if_statement:
-    IF '(' expression ')' { ifLabels[++ifIndex] = labelCounter++; quadJumpFalse(ifLabels[ifIndex]); } block_structure { quadJump(ifLabels[ifIndex]); quadFalseLabel(ifLabels[ifIndex]);} else_block { quadLabel(ifLabels[ifIndex--]); }
+    IF '(' expression ')'
+        { 
+            ifLabels[++ifIndex] = labelCounter++; 
+            assemblyJumpFalse(ifLabels[ifIndex]); 
+            quadJumpIfFalse($3, ifLabels[ifIndex]);
+        }
+    block_structure 
+        { 
+            assemblyJump(ifLabels[ifIndex]); 
+            assemblyFalseLabel(ifLabels[ifIndex]); 
+            quadJump(ifLabels[ifIndex]);
+            quadFalseLabel(ifLabels[ifIndex]);
+        } 
+    else_block 
+        { 
+            assemblyLabel(ifLabels[ifIndex]); 
+            quadLabel(ifLabels[ifIndex--]);
+        }
 
 else_block:
     ELSE {  } block_structure {  }
@@ -163,7 +181,7 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION function_type VARIABLE { insertFunc($3, "func", $2, yylineno); quadFunctionLabel($3);}'(' params ')' { quadAddFunctionParams($3); } block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
+    FUNCTION function_type VARIABLE { insertFunc($3, "func", $2, yylineno); assemblyFunctionLabel($3);}'(' params ')' { assemblyAddFunctionParams($3); } block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
     ;
 
 params:
@@ -195,55 +213,91 @@ var_declare:
     type VARIABLE   /*int x;*/           { insertVarConst($2, "var", $1, false, yylineno);  }
     | CONSTANT type VARIABLE ASSIGN expression { 
                                                     validateAssignmentType($2, $5) ? insertVarConst($3, "const", $2, true,yylineno) : yyerror("Type mismatch in assignment");
-                                                    quadPopVar($3);
+                                                    assemblyPopVar($3);
+                                                    quadAssign($3, $5);
                                                 }
     | type VARIABLE ASSIGN expression { 
                                         validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
-                                        quadPopVar($2);
+                                        assemblyPopVar($2);
+                                        quadAssign($2, $4);
                                       }
     ;
 
 assign_expression:
-    VARIABLE ASSIGN expression {validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); setVarUsed($1); quadPopVar($1);}
+    VARIABLE ASSIGN expression { 
+            validateAssignmentType(getSymbolDataType($1), $3);
+            validateNotConst($1);
+            setVarUsed($1);
+            assemblyPopVar($1);
+            quadAssign($1, $3);
+        }
     ;
 
 expression:
-    const_value { quadPushConst($1);}
-    | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); quadPushVar($1); }
+    const_value { assemblyPushConst($1);}
+    | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); assemblyPushVar($1); }
     | operation_expressions 
 ;    
 
 operation_expressions:
-    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); quadOperation("not"); }
-    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("add"); }
-    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("sub"); }
-    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("mul"); }
-    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("div"); }
-    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); quadOperation("mod"); }
+    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); assemblyOperation("not"); }
+    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
+    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
+    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mul"); $$ = quadOperation("mul", $1, $3); }
+    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("div"); $$ = quadOperation("div", $1, $3); }
+    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mod"); $$ = quadOperation("mod", $1, $3); }
 
-    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("lt"); }
-    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("gt"); }
-    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("ge"); }
-    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("le"); }
-    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("eq"); }
-    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("ne"); }
+    | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("lt"); $$ = quadOperation("lt", $1, $3); }
+    | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("gt"); $$ = quadOperation("gt", $1, $3); }
+    | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("ge"); $$ = quadOperation("ge", $1, $3); }
+    | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("le"); $$ = quadOperation("le", $1, $3); }
+    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("eq"); $$ = quadOperation("eq", $1, $3); }
+    | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("ne"); $$ = quadOperation("ne", $1, $3); }
 
-    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); quadOperation("and"); }
-    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); quadOperation("or"); }
+    | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("and"); $$ = quadOperation("and", $1, $3); }
+    | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("or"); $$ = quadOperation("or", $1, $3); }
     | '(' expression ')'          {$$ = $2; }
     | VARIABLE '(' argument_list ')' { 
                                         validateFunctionCall($1,$3->types,$3->count);
                                         $$ = createNode(getSymbolDataType($1), "func");
-                                        quadFunctionCall($1, $3->count);
+                                        assemblyFunctionCall($1, $3->count);
                                     }
     | unary_operations
     ;
 
 unary_operations:
-    INC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); quadPrefix($2, "add"); checkInitialized($2, yylineno); validateNotConst($2);}
-    | DEC VARIABLE { Node* node = createNode(getSymbolDataType($2), "var"); $$ = checkUnaryOperationTypes(node); quadPrefix($2, "sub"); checkInitialized($2, yylineno); validateNotConst($2); }
-    | VARIABLE INC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); quadPostfix($1, "add"); checkInitialized($1, yylineno); validateNotConst($1); }
-    | VARIABLE DEC { Node* node = createNode(getSymbolDataType($1), "var"); $$ = checkUnaryOperationTypes(node); quadPostfix($1, "sub"); checkInitialized($1, yylineno); validateNotConst($1);}
+    INC VARIABLE { 
+        Node* node = createNode(getSymbolDataType($2), "var"); 
+        $$ = checkUnaryOperationTypes(node); 
+        checkInitialized($2, yylineno); 
+        validateNotConst($2);
+        assemblyPrefix($2, "add"); 
+        $$ = quadPrefixIncrement($2); 
+    }
+    | DEC VARIABLE {
+        Node* node = createNode(getSymbolDataType($2), "var"); 
+        $$ = checkUnaryOperationTypes(node); 
+        checkInitialized($2, yylineno); 
+        validateNotConst($2);
+        assemblyPrefix($2, "sub"); 
+        $$ = quadPrefixDecrement($2); 
+    }
+    | VARIABLE INC { 
+        Node* node = createNode(getSymbolDataType($1), "var"); 
+        $$ = checkUnaryOperationTypes(node); 
+        checkInitialized($1, yylineno); 
+        validateNotConst($1);
+        assemblyPostfix($1, "add"); 
+        $$ = quadPostfixIncrement($1); 
+    }
+    | VARIABLE DEC { 
+        Node* node = createNode(getSymbolDataType($1), "var"); 
+        $$ = checkUnaryOperationTypes(node); 
+        checkInitialized($1, yylineno); 
+        validateNotConst($1);
+        assemblyPostfix($1, "sub"); 
+        $$ = quadPostfixDecrement($1); 
+    }
     ;
 
 

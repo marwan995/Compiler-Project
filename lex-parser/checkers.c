@@ -41,8 +41,7 @@ Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
                (strcmp(expr1->dataType, "float") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
         return getNode("float");
     }
-    printf("Error: Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
-    exit(1);
+    customError("Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
 }
 
 Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
@@ -51,9 +50,8 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
     for(int i = 0; i < 3; i++) {
         if ((strcmp(expr1->dataType, invalidTypes[i]) == 0 || strcmp(expr2->dataType, invalidTypes[i]) == 0) &&
             (strcmp(expr1->dataType, expr2->dataType) != 0)) {
-                printf("Error: Invalid expr1 dataType for comparison: %s %s\n", expr1->dataType, expr2->dataType);
-            printf("Error: Invalid dataType for comparison: %s\n", invalidTypes[i]);
-            exit(1);
+            customError("Invalid expr1 dataType for comparison: %s %s,\n Invalid dataType for comparison: %s\n", expr1->dataType, expr2->dataType, expr1->dataType, expr2->dataType);
+            return NULL;
         }
     }
 

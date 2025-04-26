@@ -7,204 +7,131 @@
 #include "utils.h"
 #include "symbol_table.c"
 
-#define MAX_Labels 100
 
-int labelCounter = 1;
+static int tempCounter = 0;
 
-int ifIndex = -1;
-int loopIndex = -1;
-
-int ifLabels[MAX_Labels];
-int loopLabels[MAX_Labels];
-int switchLabels[MAX_Labels];
-
-void handleOperation(const char* operation) {
-    fprintf(quadFileHandler.filePointer, "\t%s\n", operation);
+char* newTemp() {
+    char* temp = (char*)malloc(10 * sizeof(char));
+    sprintf(temp, "t%d", tempCounter++);
+    return temp;
 }
 
-void quadPushConst(Node* node) {
-    if (node == NULL) {
-        fprintf(stderr, "Node is NULL\n");
-        return;
+char* nodeTypeToString(Node* node) {
+    if(node == NULL) {
+        printf("nodeTypeToString: NULL node\n");
+        return strdup("_");
     }
- 
-    char buffer[256];
-    if (strcmp(node->dataType, "int") == 0) {
-        sprintf(buffer, "%d", node->iValue);
-    } else if (strcmp(node->dataType, "float") == 0) {
-        sprintf(buffer, "%f", node->fValue);
-    } else if (strcmp(node->dataType, "bool") == 0) {
-        sprintf(buffer, "%s", node->bValue ? "true" : "false");
-    } else if (strcmp(node->dataType, "char") == 0) {
-        sprintf(buffer, "'%c'", node->cValue);
-    } else if (strcmp(node->dataType, "string") == 0) {
-        sprintf(buffer, "\"%s\"", node->sValue);
+
+    char* str = (char*)malloc(256 * sizeof(char));
+    if(strcmp(node->type, "const") == 0) {
+        if(strcmp(node->dataType, "int") == 0) {
+            sprintf(str, "%d", node->iValue);
+        } else if(strcmp(node->dataType, "float") == 0) {
+            sprintf(str, "%f", node->fValue);
+        } else if(strcmp(node->dataType, "bool") == 0) {
+            sprintf(str, "%s", node->bValue ? "true" : "false");
+        } else if(strcmp(node->dataType, "char") == 0) {
+            sprintf(str, "'%c'", node->cValue);
+        } else if(strcmp(node->dataType, "string") == 0) {
+            sprintf(str, "\"%s\"", node->sValue);
+        } else {
+            customError("Unknown data type: %s", node->dataType);
+        }
     } else {
-        fprintf(stderr, "Unknown data type: %s\n", node->dataType);
-        return;
+        sprintf(str, "%s", node->name ? node->name : "_");
     }
-    fprintf(quadFileHandler.filePointer, "\tpush %s\n", buffer);
-
+    return str;
 }
 
-void quadPushVar(char* name) {
-    if (name == NULL) {
-        fprintf(stderr, "Variable name is NULL\n");
-        return;
+void printQuad(char* op, char* arg1, char* arg2, char* result) {
+    fprintf(quadFileHandler.filePointer, "%s, %s, %s, %s\n", op, arg1 ? arg1 : "_", arg2 ? arg2 : "_", result ? result : "_");
+}
+
+Node* quadOperation(char* operation, Node* left, Node* right) {
+    if (left == NULL || right == NULL) {
+        fprintf(stderr, "Error: Null operand in quadOperation\n");
+        return NULL;
     }
-    fprintf(quadFileHandler.filePointer, "\tpush %s\n", name);
+    char* arg1 = nodeTypeToString(left);
+    char* arg2 = nodeTypeToString(right);
+    char* temp = newTemp();
+    
+    printQuad(operation, arg1, arg2, temp);
+    
+    free(arg1);
+    free(arg2);
+    
+    Node* result = createNode(left->dataType, temp);
+    result->name = temp;
+    return result;
 }
 
-void quadOperation(char* operation) {
-    fprintf(quadFileHandler.filePointer, "\t%s\n", operation);
+void quadAssign(char* var, Node* expr) {    
+    char* arg1 = nodeTypeToString(expr);
+    printQuad("assign", arg1, NULL, var);
+    free(arg1);
 }
 
-void quadPopVar(char* name) {
-    fprintf(quadFileHandler.filePointer, "\tpop %s\n", name);
-    return;
-}
+static Node* quadUnaryOperation(char* varName, char* op, bool isPrefix) {
+    char* temp = newTemp();
 
-void quadPrefix(char* name, char* operation) {
-    quadPushVar(name);
-    quadPushVar("1");
-    quadOperation(operation);
-    quadPopVar(name);
-}
+    if (isPrefix) {
+        printQuad(op, varName, "1", varName);
+        
+        Node* node = createNode(getSymbolDataType(varName), varName);
+        node->name = strdup(varName);
+        return node;
+    } else {
+        printQuad("assign", varName, NULL, temp);
+        
+        // Then var = var + 1 (or var - 1)
+        printQuad(op, varName, "1", varName);
 
-void quadPostfix(char* name, char* operation) {
-    quadPushVar(name);
-    quadPopVar("_temp_");
-    quadPrefix(name, operation);
-    quadPushVar("_temp_");
-}
-
-
-void quadPrint() {
-    fprintf(quadFileHandler.filePointer, "\tprint\n");
-}
-
-void quadAddFunctionParams(char* name) {
-    int funcIdx = lookup(name);
-    printf("Function xx%s has %d parameters\n", name, symbolTable[funcIdx].paramCount);
-    for(int i = symbolTable[funcIdx].paramCount - 1; i >= 0; i--) {
-        fprintf(quadFileHandler.filePointer, "\tpop %s\n", symbolTable[symbolTable[funcIdx].paramsIds[i]].name);
+        // Use the temp (original value)
+        Node* node = createNode(getSymbolDataType(varName), temp);
+        node->name = temp;
+        return node;
     }
 }
 
-void quadFunctionLabel(char * name) {
-    fprintf(quadFileHandler.filePointer, "func_%s:\n", name);
-    fprintf(quadFileHandler.filePointer, "\tpop %s\n", "_call_");
+Node* quadPostfixIncrement(char* varName) {
+    return quadUnaryOperation(varName, "add", false);
 }
 
-void quadJumpCall() {
-    fprintf(quadFileHandler.filePointer, "\tjmp _call_\n");
+Node* quadPostfixDecrement(char* varName) {
+    return quadUnaryOperation(varName, "sub", false);
 }
 
-void quadFunctionCall(char * name, int argCount) {
-    int funcIdx = lookup(name);
-
-    for(int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
-        quadPushConst(symbolTable[symbolTable[funcIdx].paramsIds[i]].nodeValue);
-    }
-
-    fprintf(quadFileHandler.filePointer, "\tpush %s\n", "pc");
-    fprintf(quadFileHandler.filePointer, "\tpush %s\n", "2");
-    fprintf(quadFileHandler.filePointer, "\tadd\n");
-
-    fprintf(quadFileHandler.filePointer, "\tjmp func_%s\n", name);
+Node* quadPrefixIncrement(char* varName) {
+    return quadUnaryOperation(varName, "add", true);
 }
 
-void quadJumpFalse(int labelNum) {
-    fprintf(quadFileHandler.filePointer, "\tjf FALSE_LABEL%i\n", labelNum);
+Node* quadPrefixDecrement(char* varName) {
+    return quadUnaryOperation(varName, "sub", true);
+}
+
+void quadJumpIfFalse(Node* cond, int labelNum) {
+    char labelName[64];
+    sprintf(labelName, "FALSE_LABEL%d", labelNum);
+    char* condStr = nodeTypeToString(cond);
+    printQuad("if_false", condStr, NULL, labelName);
+    free(condStr);
 }
 
 void quadJump(int labelNum) {
-    fprintf(quadFileHandler.filePointer, "\tjmp LABEL%i\n", labelNum);
+    char labelName[64];
+    sprintf(labelName, "LABEL%d", labelNum);
+    printQuad("jmp", NULL, NULL, labelName);
 }
 
 void quadFalseLabel(int labelNum) {
-    fprintf(quadFileHandler.filePointer, "FALSE_LABEL%i:\n", labelNum);
+    char labelName[64];
+    sprintf(labelName, "FALSE_LABEL%d", labelNum);
+    printQuad("label", NULL, NULL, labelName);
 }
 
 void quadLabel(int labelNum) {
-    fprintf(quadFileHandler.filePointer, "LABEL%i:\n", labelNum);
-}
-
-void quadJumpFalseLabel(int labelNum) {
-    fprintf(quadFileHandler.filePointer, "\tjmp FALSE_LABEL%i\n", labelNum);
-}
-
-bool quadIsInLoop() {
-    return loopIndex != -1;
-}
-
-void quadLoopInit() {
-    loopLabels[++loopIndex] = labelCounter++;
-    quadLabel(loopLabels[loopIndex]);
-}
-
-void quadLoopBegin() {
-    loopLabels[++loopIndex] = labelCounter++;
-    quadJumpFalse(loopLabels[loopIndex]);
-}
-
-void quadLoopExit() {
-    quadJump(loopLabels[loopIndex - 1]);
-    quadFalseLabel(loopLabels[loopIndex]); loopIndex -= 2;
-}
-
-Node* createNode(char* dataType, char* type) {
-    Node* node = (Node*)malloc(sizeof(Node));
-    if (node == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
-    }
-    node->dataType = strdup(dataType);
-    node->type = strdup(type);
-    return node;
-}
-
-Node* createVarNode(char* dataType, char* type, char* name) {
-    Node* node = createNode(dataType, type);
-    node->name = strdup(name);
-    return node;
-}
-
-Node * createIntNode(int iValue) {
-    Node* node = createNode("int", "const");
-    node->iValue = iValue;
-    return node;
-}
-
-Node* createFloatNode(float fValue) {
-    Node* node = createNode("float", "const");
-    node->fValue = fValue;
-    return node;
-}
-
-Node* createBoolNode(bool bValue) {
-    Node* node = createNode("bool", "const");
-    node->bValue = bValue;
-    return node;
-}
-
-Node* createCharNode(char cValue) {
-    Node* node = createNode("char", "const");
-    node->cValue = cValue;
-    return node;
-}
-
-Node* createStringNode(char* sValue) {
-    Node* node = createNode("string", "const");
-    node->sValue = strdup(sValue);
-    return node;
-}
-
-void quadTest(Node* node) {
-    if (node == NULL) {
-        fprintf(stderr, "Node is NULL\n");
-        return;
-    }
-    printf("Node type: %s\n", node->type);
-    printf("Node dataType: %s\n", node->dataType);
+    char labelName[64];
+    sprintf(labelName, "LABEL%d", labelNum);
+    printQuad("label", NULL, NULL, labelName);
 }

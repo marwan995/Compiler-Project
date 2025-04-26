@@ -1,0 +1,37 @@
+func_main:
+	pop _call_
+	push 0
+	pop x
+	push x
+	pop _temp_
+	push x
+	push 1
+	add
+	pop x
+	push _temp_
+	push 1
+	add
+	push x
+	add
+	pop y
+	push x
+	push y
+	gt
+	jf FALSE_LABEL1
+	push 0
+	pop z
+	jmp LABEL1
+FALSE_LABEL1:
+	push x
+	push y
+	eq
+	jf FALSE_LABEL2
+	push 0
+	pop b
+	jmp LABEL2
+FALSE_LABEL2:
+	push 0
+	pop k
+LABEL2:
+LABEL1:
+	jmp _call_

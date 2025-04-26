@@ -1,7 +1,2 @@
 ID	Name	Type	DataType	Scope	Initialized
-0	z	func	int	0	0
-1	a	param	int	1	0
-2	b	param	int	1	0
-3	c	param	int	1	1
-4	d	param	int	1	1
-5	main	func	void	0	0
+0	main	func	void	0	0

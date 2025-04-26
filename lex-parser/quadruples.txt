@@ -1,48 +1,19 @@
-func_z:
-	pop _call_
-	pop d
-	pop c
-	pop b
-	pop a
-	push 0
-	pop x
-	push a
-	pop _temp_
-	push a
-	push 1
-	add
-	pop a
-	push _temp_
-	push 1
-	add
-	push a
-	add
-	pop x
-	push a
-	pop _temp_
-	push a
-	push 1
-	add
-	pop a
-	push _temp_
-	push a
-	push 1
-	add
-	pop a
-	push 0
-	jmp _call_
-func_main:
-	pop _call_
-	push 0
-	pop x
-	push 0
-	pop y
-	push x
-	push y
-	push 0
-	push 3
-	push pc
-	push 2
-	add
-	jmp func_z
-	jmp _call_
+assign, 0, _, x
+assign, x, _, t0
+add, x, 1, x
+add, t0, 1, t1
+add, t1, x, t2
+assign, t2, _, y
+gt, x, y, t3
+if_false, t3, _, FALSE_LABEL1
+assign, 0, _, z
+jmp, _, _, LABEL1
+label, _, _, FALSE_LABEL1
+eq, x, y, t4
+if_false, t4, _, FALSE_LABEL2
+assign, 0, _, b
+jmp, _, _, LABEL2
+label, _, _, FALSE_LABEL2
+assign, 0, _, k
+label, _, _, LABEL2
+label, _, _, LABEL1

@@ -1,12 +1,9 @@
-func int z(int a, int b, int c = 3, int d = 0) {
-    int x = 0;
-    return 0;
+func int test(int x, int y = 0) {
+   x = ++y + 1;
+   return x;
 }
 
-func void main() {
-    int x = 0;
-    int y = 0;
-
-    z(x, y);
-    return;
+func void main(){
+  int z = test(1); 
+  return;
 }
