@@ -100,13 +100,13 @@ statement_list:
 statement:
     var_declare SEMICOLON {}
     | expression SEMICOLON {  }
-    | PRINT '(' expression ')' SEMICOLON { assemblyPrint(); }
+    | PRINT '(' expression ')' SEMICOLON { assemblyPrint(); quadPrint($3); }
     | if_statement {}
-    | WHILE { assemblyLoopInit(); } '(' expression ')' { assemblyLoopBegin(); } block_structure { assemblyLoopExit(); }
-    | DO { assemblyLoopInit(); } block_structure WHILE '(' expression ')' { assemblyLoopBegin(); } SEMICOLON { assemblyLoopExit(); }
-    | FOR '(' for_loop_init SEMICOLON { assemblyLoopInit(); } expression SEMICOLON { assemblyLoopBegin(); } for_loop_expression ')' block_structure { assemblyLoopExit(); }
+    | for_statement {}
+    | while_statement {}
+    | do_while_statement {}
     | SEMICOLON   {  }  /* empty statment */
-    | return_statement { assemblyJumpCall("_call_"); }
+    | return_statement { isFunctReturned = true; assemblyJumpCall("_call_"); quadJumpCall("_call_");  }
     | BREAK SEMICOLON { assemblyIsInLoop() ? assemblyJumpFalseLabel(loopLabels[loopIndex]) : yyerror("break statement not in loop"); }
     | CONTINUE SEMICOLON { assemblyIsInLoop() ? assemblyJump(loopLabels[loopIndex - 1]) : yyerror("continue statement not in loop"); }
     | assign_expression SEMICOLON {  }
@@ -139,6 +139,53 @@ else_block:
     | ELSE { } if_statement { }
     | { } 
     ;
+    
+for_statement:
+    FOR '('
+    for_loop_init SEMICOLON { assemblyLoopInit(); quadLoopInit(); } 
+    for_begin  SEMICOLON 
+    for_loop_expression 
+    ')' 
+    block_structure 
+    loop_exit {}
+    ;
+
+while_statement:
+    WHILE
+    { 
+        assemblyLoopInit();
+        quadLoopInit();   
+    } 
+    while_begin
+    block_structure 
+    loop_exit {}
+    ;
+
+do_while_statement:
+    DO
+        { assemblyLoopInit();
+          quadLoopInit();
+        } 
+    block_structure 
+    WHILE while_begin
+    SEMICOLON 
+    loop_exit {}
+    ;
+
+
+for_begin:
+    expression 
+        { assemblyLoopBegin();  quadLoopBegin($1);}
+    ;
+
+while_begin:
+    '(' expression ')' 
+        { assemblyLoopBegin(); quadLoopBegin($2); } 
+    ;
+
+loop_exit:
+        { assemblyLoopExit(); quadLoopExit(); }
+        ;
 
 case_list: 
     case_list CASE const_value ':' block_structure {  }
@@ -181,7 +228,27 @@ return_statement:
 /*--------------------------------------------------------------------------*/
 
 function_declare:
-    FUNCTION function_type VARIABLE { insertFunc($3, "func", $2, yylineno); assemblyFunctionLabel($3);}'(' params ')' { assemblyAddFunctionParams($3); } block_structure   { checkLastFunctionReturnType(yylineno); insideFunctionIdx = -1;}
+    FUNCTION function_type VARIABLE 
+    {
+        isFunctReturned = false;
+        insertFunc($3, "func", $2, yylineno); 
+        assemblyFunctionLabel($3);
+        quadFunctionLabel($3);
+    }
+    '(' params ')' 
+    { 
+        assemblyAddFunctionParams($3); 
+        quadAddFunctionParams($3); 
+    } 
+    block_structure   
+    { 
+        checkLastFunctionReturnType(yylineno); 
+        if(!isFunctReturned) {
+            assemblyJumpCall("_call_");
+            quadJumpCall("_call_"); 
+        }
+        insideFunctionIdx = -1;
+    }
     ;
 
 params:
@@ -261,6 +328,7 @@ operation_expressions:
                                         validateFunctionCall($1,$3->types,$3->count);
                                         $$ = createNode(getSymbolDataType($1), "func");
                                         assemblyFunctionCall($1, $3->count);
+                                        quadFunctionCall($1, $3->count);
                                     }
     | unary_operations
     ;

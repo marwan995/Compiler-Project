@@ -18,6 +18,8 @@ int ifLabels[MAX_Labels];
 int loopLabels[MAX_Labels];
 int switchLabels[MAX_Labels];
 
+bool isFunctReturned = false;
+
 void assemblyPushConst(Node* node) {
     if (node == NULL) {
         fprintf(stderr, "Node is NULL\n");
@@ -146,7 +148,8 @@ void assemblyLoopBegin() {
 
 void assemblyLoopExit() {
     assemblyJump(loopLabels[loopIndex - 1]);
-    assemblyFalseLabel(loopLabels[loopIndex]); loopIndex -= 2;
+    assemblyFalseLabel(loopLabels[loopIndex]);
+    loopIndex -= 2;
 }
 
 

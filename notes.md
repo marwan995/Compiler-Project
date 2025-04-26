@@ -25,3 +25,4 @@ make test
 - switch case
 - break of switch case
 - gui tabs and litrelly tab
+- Not expression

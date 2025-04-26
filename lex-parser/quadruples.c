@@ -7,8 +7,13 @@
 #include "utils.h"
 #include "symbol_table.c"
 
-
 static int tempCounter = 0;
+static int quadLabelCounter = 1;
+static int quadLoopIndex = -1;
+
+#define MAX_LABELS 100
+static int quadLoopLabels[MAX_LABELS];
+
 
 char* newTemp() {
     char* temp = (char*)malloc(10 * sizeof(char));
@@ -45,6 +50,12 @@ char* nodeTypeToString(Node* node) {
 
 void printQuad(char* op, char* arg1, char* arg2, char* result) {
     fprintf(quadFileHandler.filePointer, "%s, %s, %s, %s\n", op, arg1 ? arg1 : "_", arg2 ? arg2 : "_", result ? result : "_");
+}
+
+void quadPrint(Node* node) {
+    char* arg1 = nodeTypeToString(node);
+    printQuad("print", arg1, NULL, NULL);
+    free(arg1);
 }
 
 Node* quadOperation(char* operation, Node* left, Node* right) {
@@ -110,8 +121,9 @@ Node* quadPrefixDecrement(char* varName) {
     return quadUnaryOperation(varName, "sub", true);
 }
 
+
 void quadJumpIfFalse(Node* cond, int labelNum) {
-    char labelName[64];
+    char labelName[20];
     sprintf(labelName, "FALSE_LABEL%d", labelNum);
     char* condStr = nodeTypeToString(cond);
     printQuad("if_false", condStr, NULL, labelName);
@@ -119,19 +131,72 @@ void quadJumpIfFalse(Node* cond, int labelNum) {
 }
 
 void quadJump(int labelNum) {
-    char labelName[64];
+    char labelName[20];
     sprintf(labelName, "LABEL%d", labelNum);
     printQuad("jmp", NULL, NULL, labelName);
 }
 
 void quadFalseLabel(int labelNum) {
-    char labelName[64];
+    char labelName[20];
     sprintf(labelName, "FALSE_LABEL%d", labelNum);
     printQuad("label", NULL, NULL, labelName);
 }
 
 void quadLabel(int labelNum) {
-    char labelName[64];
+    char labelName[20];
     sprintf(labelName, "LABEL%d", labelNum);
     printQuad("label", NULL, NULL, labelName);
 }
+
+void quadAddFunctionParams(char* name) {
+    int funcIdx = lookup(name);
+    printf("Quad: Function %s has %d parameters\n", name, symbolTable[funcIdx].paramCount);
+    for (int i = symbolTable[funcIdx].paramCount - 1; i >= 0; i--) {
+        char* paramName = symbolTable[symbolTable[funcIdx].paramsIds[i]].name;
+        printQuad("pop_param", paramName, "_", "_");
+    }
+}
+
+void quadFunctionLabel(char* name) {
+    printQuad("func_label", name, "_", "_");
+    printQuad("pop", "_call_", "_", "_");
+}
+
+void quadJumpCall() {
+    printQuad("jmp", "_call_", "_", "_");
+}
+
+void quadFunctionCall(char *name, int argCount) {
+    int funcIdx = lookup(name);
+
+    for (int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
+        char tempStr[32];
+        char* value = nodeTypeToString(symbolTable[symbolTable[funcIdx].paramsIds[i]].nodeValue);
+        snprintf(tempStr, sizeof(tempStr), "%s", value);
+        printQuad("push_const", tempStr, "_", "_");
+    }
+
+    printQuad("push", "pc", "_", "_");
+    printQuad("add", "pc", "2", "pc");
+
+    char funcLabel[128];
+    snprintf(funcLabel, sizeof(funcLabel), "func_%s", name);
+    printQuad("jmp", funcLabel, "_", "_");
+}
+
+void quadLoopInit() {
+    quadLoopLabels[++quadLoopIndex] = quadLabelCounter++;
+    quadLabel(quadLoopLabels[quadLoopIndex]);
+}
+
+void quadLoopBegin(Node* condition) {
+    quadLoopLabels[++quadLoopIndex] = quadLabelCounter++;
+    quadJumpIfFalse(condition, quadLoopLabels[quadLoopIndex]);
+}
+
+void quadLoopExit() {
+    quadJump(quadLoopLabels[quadLoopIndex - 1]);
+    quadFalseLabel(quadLoopLabels[quadLoopIndex]);
+    quadLoopIndex -= 2;
+}
+
