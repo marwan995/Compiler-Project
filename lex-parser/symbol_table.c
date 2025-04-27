@@ -41,6 +41,7 @@ int blockIdx = -1;
 int lastFunctionIdx = -1; 
 int insideFunctionIdx = -1;
 char error_msg[256];
+static int g_snapshot_id_counter = 0;  // Only for snapshots
 
 typedef struct ArgList {
     char** types;
@@ -56,53 +57,32 @@ void initSymbolTable() {
     }
 }
 void updateSnapshot(Symbol* symbol) {
-    // Check if a snapshot already exists for this symbol ID
     for (int i = 0; i < snapshotCount; i++) {
-        if (symbolTableSnapshot[i].id == symbol->id) {
-            // Update existing snapshot
-            free(symbolTableSnapshot[i].name);
-            free(symbolTableSnapshot[i].type);
-            free(symbolTableSnapshot[i].dataType);
-            if (symbolTableSnapshot[i].paramCount > 0) {
-                free(symbolTableSnapshot[i].paramsIds);
-            }
-
-            symbolTableSnapshot[i].name = strdup(symbol->name);
-            symbolTableSnapshot[i].type = strdup(symbol->type);
-            symbolTableSnapshot[i].dataType = strdup(symbol->dataType);
-            symbolTableSnapshot[i].scope = symbol->scope;
-            symbolTableSnapshot[i].isInitialized = symbol->isInitialized;
-            symbolTableSnapshot[i].nodeValue = symbol->nodeValue; // Shallow copy
-            symbolTableSnapshot[i].isForLoop = symbol->isForLoop;
-            symbolTableSnapshot[i].isUsed = symbol->isUsed;
-            symbolTableSnapshot[i].symbolLine = symbol->symbolLine;
-            symbolTableSnapshot[i].paramCount = symbol->paramCount;
-            symbolTableSnapshot[i].isParam = symbol->isParam;
-            symbolTableSnapshot[i].hasReturn = symbol->hasReturn;
-
-            if (symbol->paramCount > 0) {
-                symbolTableSnapshot[i].paramsIds = malloc(MAX_PARAMS * sizeof(int));
-                memcpy(symbolTableSnapshot[i].paramsIds, symbol->paramsIds, MAX_PARAMS * sizeof(int));
-            } else {
-                symbolTableSnapshot[i].paramsIds = NULL;
-            }
+        if (symbolTableSnapshot[i].id != -1 &&
+            strcmp(symbolTableSnapshot[i].name, symbol->name) == 0 &&
+            symbolTableSnapshot[i].symbolLine == symbol->symbolLine &&
+            strcmp(symbolTableSnapshot[i].dataType, symbol->dataType) == 0 &&
+            symbolTableSnapshot[i].scope == symbol->scope) {
+                printf("name is %s",symbolTableSnapshot[i].name);
+            // Exact match found - don't add duplicate
             return;
         }
     }
 
-    // Add new snapshot
+    // Only add new snapshot if table isn't full
     if (snapshotCount >= MAX_SYMBOLS) {
         fprintf(stderr, "Error: Snapshot table is full\n");
         exit(1);
     }
 
-    symbolTableSnapshot[snapshotCount].id = symbol->id;
+    // Add new snapshot entry
+    symbolTableSnapshot[snapshotCount].id = g_snapshot_id_counter++;
     symbolTableSnapshot[snapshotCount].name = strdup(symbol->name);
     symbolTableSnapshot[snapshotCount].type = strdup(symbol->type);
     symbolTableSnapshot[snapshotCount].dataType = strdup(symbol->dataType);
     symbolTableSnapshot[snapshotCount].scope = symbol->scope;
     symbolTableSnapshot[snapshotCount].isInitialized = symbol->isInitialized;
-    symbolTableSnapshot[snapshotCount].nodeValue = symbol->nodeValue; // Shallow copy
+    symbolTableSnapshot[snapshotCount].nodeValue = symbol->nodeValue;
     symbolTableSnapshot[snapshotCount].isForLoop = symbol->isForLoop;
     symbolTableSnapshot[snapshotCount].isUsed = symbol->isUsed;
     symbolTableSnapshot[snapshotCount].symbolLine = symbol->symbolLine;
@@ -129,7 +109,6 @@ void checkMain() {
     }
     customError("No main function defined in the program");
 }
-
 void printSymbolTable() {
     FILE* file = fopen("symbol_table.txt", "w");
     if (!file) {
@@ -138,7 +117,9 @@ void printSymbolTable() {
     }
 
     fprintf(file, "ID\tName\tType\tDataType\tScope\tInitialized\tLine\tUsed\tParam\n");
-    for (int i = 0; i < snapshotCount; i++) {
+
+    // Print all active symbols first
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
         if (symbolTableSnapshot[i].id != -1) {
             fprintf(file, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\n",
                     symbolTableSnapshot[i].id,
@@ -149,16 +130,12 @@ void printSymbolTable() {
                     symbolTableSnapshot[i].isInitialized,
                     symbolTableSnapshot[i].symbolLine,
                     symbolTableSnapshot[i].isUsed,
-                    symbolTableSnapshot[i].isParam
-                   );
-            // Print parameters for functions
-
+                    symbolTableSnapshot[i].isParam);
         }
     }
 
     fclose(file);
 }
-
 void enterScope(int lineNumber) {
     printf("Entering scope at line: %i...\n", lineNumber);
     blockIdx++;
@@ -166,19 +143,26 @@ void enterScope(int lineNumber) {
 
 void exitScope(int lineNumber) {
     printf("Exiting scope at line: %i...\n", lineNumber);
-    // Free symbols in the current scope
+    
+    
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (symbolTable[i].id != -1 && symbolTable[i].scope == blockIdx) {
+            updateSnapshot(&symbolTable[i]);
+        }
+    }
+    
+    // Second pass: free current scope variables
     for (int i = 0; i < MAX_SYMBOLS; i++) {
         if (symbolTable[i].id != -1 && symbolTable[i].scope == blockIdx && !symbolTable[i].isParam) {
             free(symbolTable[i].name);
             free(symbolTable[i].type);
             free(symbolTable[i].dataType);
-
             symbolTable[i].id = -1;
         }
-    }    
+    }
+    
     blockIdx--;
 }
-
 bool checkPramsForFunction(char*name){
     if(insideFunctionIdx < 0) {
         return false;
