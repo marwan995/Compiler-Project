@@ -107,7 +107,7 @@ statement:
     | while_statement {}
     | do_while_statement {}
     | SEMICOLON   {  }  /* empty statment */
-    | return_statement { isFunctReturned = true; assemblyJumpCall("_call_"); quadJumpCall("_call_");  }
+    | return_statement { isFunctReturned = true; assemblyJumpCall("_call_"); /*quadJumpCall("_call_");*/   }
     | BREAK SEMICOLON {
         if (!assemblyIsInLoop() && !assemblyIsInSwitch()) {
             yyerror("break statement not in loop or switch case");
@@ -308,7 +308,7 @@ function_declare:
         checkLastFunctionReturnType(yylineno); 
         if(!isFunctReturned) {
             assemblyJumpCall("_call_");
-            quadJumpCall("_call_"); 
+            /*quadJumpCall("_call_");*/
         }
         insideFunctionIdx = -1;
     }

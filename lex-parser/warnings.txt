@@ -1,0 +1,2 @@
+Warning at line 10: Variable x is declared but not used
+ near token '}'

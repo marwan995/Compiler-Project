@@ -1,9 +1,26 @@
 func int testInt(int x) {
-    
+    	
+	int y = x + 1;
+	print(y);
     return x;
 }
 
+
 func void main() {
-    int x = !testInt(2)+85;
-print(x);#fdgf
+    int x = !testInt(2);
+	for(int i = 0; i < 5; i++) {
+		int g = 0;
+		
+		if(i > 3) {
+			print(g + 2);
+		} else if(i > 2) {
+			print(g + 1);
+		} else {
+			print(g);
+		}
+		int k = 0;
+		while(k < i) {
+			print(k);
+		}
+	}
 } 

@@ -74,16 +74,13 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
 }
 
 Node* checkUnaryOperationTypes (Node* expr) {
-    printf("Checking unary operation types: %s\n", expr->dataType);
-    printf("Checking unary operation types: %s\n", expr->type);
-
     if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "float") == 0) {
         return getNode(expr->dataType);
     } else if (strcmp(expr->dataType, "char") == 0) {
         return getNode("int");
     } else {
         printf("Error: Invalid dataType for unary operation: %s\n", expr->dataType);
-        exit(1);
+        customError("Invalid dataType for unary operation: %s\n", expr->dataType);
     }
     return NULL;
 }

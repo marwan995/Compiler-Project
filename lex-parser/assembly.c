@@ -98,7 +98,6 @@ void assemblyPrint() {
 
 void assemblyAddFunctionParams(char* name) {
     int funcIdx = lookup(name);
-    printf("Function xx%s has %d parameters\n", name, symbolTable[funcIdx].paramCount);
     for(int i = symbolTable[funcIdx].paramCount - 1; i >= 0; i--) {
         fprintf(assemblyFileHandler.filePointer, "\tpop %s\n", symbolTable[symbolTable[funcIdx].paramsIds[i]].name);
     }

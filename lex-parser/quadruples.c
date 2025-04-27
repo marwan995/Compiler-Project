@@ -198,7 +198,7 @@ void quadAddFunctionParams(char* name) {
 
 void quadFunctionLabel(char* name) {
     printQuad("func_label", name, "_", "_");
-    printQuad("pop", "_call_", "_", "_");
+    // printQuad("pop", "_call_", "_", "_");
 }
 
 void quadJumpCall() {
@@ -208,6 +208,12 @@ void quadJumpCall() {
 Node* quadFunctionCall(char *name, int argCount) {
     int funcIdx = lookup(name);
 
+    printf("Arg count: %d\n", argCount);
+    for(int i = 0; i < argCount; i++) {
+        char* argName = symbolTable[symbolTable[funcIdx].paramsIds[i]].name;
+        printQuad("push", argName, "_", "_");
+    }
+
     for (int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
         char tempStr[32];
         char* value = nodeTypeToString(symbolTable[symbolTable[funcIdx].paramsIds[i]].nodeValue);
@@ -215,8 +221,8 @@ Node* quadFunctionCall(char *name, int argCount) {
         printQuad("push_const", tempStr, "_", "_");
     }
 
-    printQuad("push", "pc", "_", "_");
-    printQuad("add", "pc", "2", "pc");
+    // printQuad("push", "pc", "_", "_");
+    // printQuad("add", "pc", "2", "pc");
 
     char funcLabel[128];
     snprintf(funcLabel, sizeof(funcLabel), "func_%s", name);
