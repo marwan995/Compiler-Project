@@ -72,6 +72,12 @@ void assemblyPopVar(char* name) {
     return;
 }
 
+void assemblyUnaryMinus(char* name) {
+    // assemblyPushVar(name);
+    assemblyOperation("neg");
+    assemblyPopVar(name);
+}
+
 void assemblyPrefix(char* name, char* operation) {
     assemblyPushVar(name);
     assemblyPushVar("1");

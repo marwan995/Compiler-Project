@@ -328,7 +328,7 @@ int insertSymbol(char *name, char* type, char* dataType, bool isInitialized, boo
                     symbolTable[i].hasReturn = false;
                 }
             }
-            updateSnapshot(&symbolTable[i]);
+            updateSnapshot(&symbolTable[i]);            
             return i;
         }
     }

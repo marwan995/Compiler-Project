@@ -1,15 +1,8 @@
 func int testInt(int x) {
-    switch (x) {
-        case 1: {return 10; break;}
-        case 2: {
-            
-            break;
-        }
-        default: {print(0);}
-    }
-    return 0;
+    
+    return x;
 }
 
 func void main() {
-
-}
+    int x = testInt(1) + testInt(2);
+} 

@@ -1,4 +1,5 @@
 ID	Name	Type	DataType	Scope	Initialized	Line	Used	Param
 0	testInt	func	int	0	0	1	0	0
 1	x	param	int	1	0	1	1	1
-2	main	func	void	0	0	13	0	0
+2	main	func	void	0	0	6	0	0
+3	x	var	int	1	1	7	0	0

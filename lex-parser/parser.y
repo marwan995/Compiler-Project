@@ -55,6 +55,7 @@
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc NOT
+%nonassoc UMINUS
 
 %left OR
 %left AND
@@ -67,6 +68,7 @@
 
 %type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions unary_operations not_operation var_use
 %type <nPtr> non_default_params default_params assign_expression case_list switch_body switch_body_expression
+%type <nPtr> return_statement
 
 %%
 /*--------------------------------------------------------------------------*/
@@ -248,8 +250,22 @@ block_structure:
 /*--------------------------------------------------------------------------*/
 
 for_loop_init:
-    VARIABLE ASSIGN expression { validateAssignmentType(getSymbolDataType($1), $3); validateNotConst($1); insertForLoopVar($1, "var", NULL, yylineno);}
-    | type VARIABLE ASSIGN expression /*int x = 1;*/ { validateAssignmentType($1, $4) ? insertForLoopVar($2, "var", $1, yylineno): yyerror("Type mismatch in assignment");  }
+    VARIABLE ASSIGN expression { 
+        validateAssignmentType(getSymbolDataType($1), $3); 
+        validateNotConst($1); 
+        insertForLoopVar($1, "var", NULL, yylineno);
+        assemblyPopVar($1);
+        quadAssign($1, $3);
+    }
+    | type VARIABLE ASSIGN expression { 
+        if (validateAssignmentType($1, $4)) {
+            insertForLoopVar($2, "var", $1, yylineno);
+            assemblyPopVar($2);
+            quadAssign($2, $4);
+        } else {
+            yyerror("Type mismatch in assignment");
+        }
+    }
     ;
 
 for_loop_expression:
@@ -258,8 +274,16 @@ for_loop_expression:
     ;
 
 return_statement:
-    RETURN expression SEMICOLON { validateReturnType($2->dataType, yylineno); markFunctionReturnType(yylineno); }
-    | RETURN SEMICOLON { validateReturnType("void", yylineno); markFunctionReturnType(yylineno); }
+    RETURN expression SEMICOLON { 
+        validateReturnType($2->dataType, yylineno); 
+        markFunctionReturnType(yylineno); 
+        $$ = quadReturn($2);
+    }
+    | RETURN SEMICOLON { 
+        validateReturnType("void", yylineno); 
+        markFunctionReturnType(yylineno);
+        $$ = quadReturn(NULL);
+    }
     ;
 
 /*--------------------------------------------------------------------------*/
@@ -323,8 +347,9 @@ var_declare:
                                                     quadAssign($3, $5);
                                                 }
     | type VARIABLE ASSIGN expression { 
-                                        validateAssignmentType($1, $4)? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
+                                        validateAssignmentType($1, $4) ? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
                                         assemblyPopVar($2);
+                                        printf("HELP 1\n");
                                         quadAssign($2, $4);
                                       }
     ;
@@ -347,6 +372,12 @@ expression:
 
 operation_expressions:
     not_operation
+    | SUB expression %prec UMINUS { 
+        printf("Unary minus\n");
+        $$ = checkUnaryOperationTypes($2); 
+        assemblyUnaryMinus($2->name);
+        $$ = quadUnaryMinus($2->name);
+    }
     |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
     | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
     | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mul"); $$ = quadOperation("mul", $1, $3); }
@@ -366,8 +397,11 @@ operation_expressions:
     | VARIABLE '(' argument_list ')' { 
                                         validateFunctionCall($1,$3->types,$3->count);
                                         $$ = createNode(getSymbolDataType($1), "func");
+                                        printf("HELP 2\n");
                                         assemblyFunctionCall($1, $3->count);
+                                        printf("HELP 3\n");
                                         quadFunctionCall($1, $3->count);
+                                        printf("HELP 4\n");
                                     }
     | unary_operations
     ;
@@ -377,6 +411,7 @@ not_operation :
 
 var_use:
     VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); if(!stopPushVarInSwitch) assemblyPushVar($1); }
+
 unary_operations:
     INC VARIABLE { 
         Node* node = createNode(getSymbolDataType($2), "var"); 
@@ -417,7 +452,6 @@ unary_operations:
          setVarUsed($1);
     }
     ;
-
 
 argument_list:
     expression {

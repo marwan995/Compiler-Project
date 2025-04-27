@@ -52,6 +52,8 @@ char* nodeTypeToString(Node* node) {
         } else {
             customError("Unknown data type: %s", node->dataType);
         }
+    } else if(strcmp(node->type, "func") == 0) {
+        sprintf(str, "@ret");
     } else {
         sprintf(str, "%s", node->name ? node->name : "_");
     }
@@ -59,7 +61,11 @@ char* nodeTypeToString(Node* node) {
 }
 
 void printQuad(char* op, char* arg1, char* arg2, char* result) {
-    fprintf(quadFileHandler.filePointer, "%s, %s, %s, %s\n", op, arg1 ? arg1 : "_", arg2 ? arg2 : "_", result ? result : "_");
+    fprintf(quadFileHandler.filePointer, "%-12s\t%-12s\t%-12s\t%-12s\n", 
+            op ? op : "_", 
+            arg1 ? arg1 : "_", 
+            arg2 ? arg2 : "_", 
+            result ? result : "_");
 }
 
 bool quadIsInLoop() {
@@ -98,13 +104,23 @@ Node* quadOperation(char* operation, Node* left, Node* right) {
     return result;
 }
 
-void quadAssign(char* var, Node* expr) {    
+void quadAssign(char* var, Node* expr) {
+    printf("expr type %s\n", expr->type);
     char* arg1 = nodeTypeToString(expr);
     printQuad("assign", arg1, NULL, var);
     free(arg1);
 }
 
-static Node* quadUnaryOperation(char* varName, char* op, bool isPrefix) {
+Node* quadUnaryMinus(char* varName) {
+    char* temp = newTemp();
+    printQuad("neg", varName, "_", temp);
+    
+    Node* node = createNode(getSymbolDataType(varName), temp);
+    node->name = temp;
+    return node;
+}
+
+Node* quadUnaryOperation(char* varName, char* op, bool isPrefix) {
     char* temp = newTemp();
 
     if (isPrefix) {
@@ -115,11 +131,8 @@ static Node* quadUnaryOperation(char* varName, char* op, bool isPrefix) {
         return node;
     } else {
         printQuad("assign", varName, NULL, temp);
-        
-        // Then var = var + 1 (or var - 1)
         printQuad(op, varName, "1", varName);
 
-        // Use the temp (original value)
         Node* node = createNode(getSymbolDataType(varName), temp);
         node->name = temp;
         return node;
@@ -278,4 +291,20 @@ void quadSwitchEnd() {
     quadSwitchIndex = outIndex - 1;
     quadSwitchSkipIndex = outIndex - 1;
     quadSwitchOutIndex--;
+}
+
+Node* quadReturn(Node* node) {
+    if (node == NULL) {
+        printQuad("return", "_", "_", "_");
+        return createNode("void", "_");
+    } else {
+        printf("HELP 5\n");
+        char* arg1 = nodeTypeToString(node);
+        printQuad("return", "_", "_", arg1);
+        free(arg1);
+
+        Node* retNode = createNode(node->dataType, node->type);
+        node->name = strdup("@ret");
+        return node;
+    }
 }

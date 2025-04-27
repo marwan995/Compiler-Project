@@ -74,7 +74,7 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
 }
 
 Node* checkUnaryOperationTypes (Node* expr) {
-    if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "float") == 0 || strcmp(expr->dataType, "bool") == 0) {
+    if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "float") == 0) {
         return getNode(expr->dataType);
     } else if (strcmp(expr->dataType, "char") == 0) {
         return getNode("int");

@@ -69,7 +69,7 @@ Node* createNode(char* dataType, char* type) {
     Node* node = (Node*)malloc(sizeof(Node));
     if (node == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     node->dataType = strdup(dataType);
     node->type = strdup(type);

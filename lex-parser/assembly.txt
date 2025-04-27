@@ -1,0 +1,20 @@
+func_testInt:
+	pop _call_
+	pop x
+	push x
+	jmp _call_
+func_main:
+	pop _call_
+	push 1
+	push pc
+	push 2
+	add
+	jmp func_testInt
+	push 2
+	push pc
+	push 2
+	add
+	jmp func_testInt
+	add
+	pop x
+	jmp _call_
