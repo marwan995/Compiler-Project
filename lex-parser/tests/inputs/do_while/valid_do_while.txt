@@ -1,4 +1,4 @@
-func void testDoWhile() {
+func void main() {
     int i = 0;
     int sum = 0;
     do {

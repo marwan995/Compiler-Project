@@ -1,4 +1,4 @@
-func void testUnary() {
+func void main() {
     int x = 0;
     x++;
     x--;

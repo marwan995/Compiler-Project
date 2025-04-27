@@ -1,4 +1,4 @@
-func int test_elif(int x){
+func int main(int x){
 
     if (x == 1){
         int z = 0;

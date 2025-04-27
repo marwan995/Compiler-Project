@@ -1,4 +1,4 @@
-int power(int base, exponent)
+int main(int base, exponent)
 {
     int result = 1;
     for (int i = 0; i < exponent; i = i + 1)

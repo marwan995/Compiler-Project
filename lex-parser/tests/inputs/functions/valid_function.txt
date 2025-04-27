@@ -3,7 +3,7 @@ func int add(int a, int b)
     return a + b;
 }
 
-func void x(){
+func void main(){
     if(true) {
         
     };

@@ -1,4 +1,4 @@
-func_testWhile_BigValid:
+func_main:
 	pop _call_
 	push 0
 	pop i

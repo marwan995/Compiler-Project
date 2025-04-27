@@ -1,4 +1,4 @@
-func int factorial(int n)
+func int main(int n)
 {
     int result = 1;
     if (n <= 0)

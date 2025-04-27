@@ -1,4 +1,4 @@
-func int test_if(){
+func int main(){
     int x=0;
     if(x==5){
         int y=2;

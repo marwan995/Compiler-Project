@@ -19,10 +19,9 @@ make clean
 make test
 ```
 - we may add a condition to check that the function have return for all its block structure children
-- we need a symantic check to have a main function
 - we need to add the minus operation (x = -x)
 - full symbol table
 - switch case
-- break of switch case
-- gui tabs and litrelly tab
-- Not expression
+- Not expression correct way to wright not (!y)
+- overlapping between if in quads and assembly
+- retrun value is neglacted which is wrong

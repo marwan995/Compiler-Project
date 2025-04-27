@@ -1,4 +1,4 @@
-func void testInvalidWhileLoop() {
+func void main() {
     while(int x = 2) { 
         x = x + 1;
         print(x);

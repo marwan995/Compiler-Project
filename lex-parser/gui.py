@@ -16,7 +16,8 @@ from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat
 COMPILER_PATH = "parser.exe"
 WARNING_PATH = "warnings.txt"
 ERROR_PATH ="syntax_errors.txt"
-ASSIMBLE_PATH ="quadruples.txt"
+ASSIMBLE_PATH ="assembly.txt"
+QUADRUPLES_PATH ="quadruples.txt"
 
 class LineNumberArea(QFrame):
     def __init__(self, editor):
@@ -35,13 +36,14 @@ class CodeEditor(QPlainTextEdit):
         super().__init__()
         self.setFont(QFont("Consolas", 12))
         self.setPlaceholderText("Type your code here...")
-        self.line_number_area = LineNumberArea(self)
-
+        self.line_number_area = LineNumberArea(self)   	
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
         self.cursorPositionChanged.connect(self.highlight_current_line)
         self.highlighter = SyntaxHighlighter(self.document())
-
+        font_metrics = self.fontMetrics()
+        tab_width_pixels = font_metrics.horizontalAdvance(' ') * 4
+        self.setTabStopDistance(tab_width_pixels)
         self.update_line_number_area_width(0)
         self.highlight_current_line()
 
@@ -117,6 +119,10 @@ class CompilerApp(QWidget):
         self.upload_button.setStyleSheet("padding: 8px; font-size: 14px;")
         self.upload_button.clicked.connect(self.upload_code)
         button_row.addWidget(self.upload_button)
+        self.save_button = QPushButton("💾 Save Code")
+        self.save_button.setStyleSheet("padding: 8px; font-size: 14px;")
+        self.save_button.clicked.connect(self.save_code)
+        button_row.addWidget(self.save_button)
 
         self.run_button = QPushButton("▶ Run Code")
         self.run_button.setStyleSheet("padding: 8px; font-size: 14px; background-color: #4CAF50; color: white; ")
@@ -129,6 +135,8 @@ class CompilerApp(QWidget):
         self.tabs = QTabWidget()
         self.assembly_tab = QTextEdit()
         self.assembly_tab.setReadOnly(True)
+        self.quadruples_tab = QTextEdit()
+        self.quadruples_tab.setReadOnly(True)
 
         self.error_tab = QTextEdit()
         self.error_tab.setReadOnly(True)
@@ -139,8 +147,9 @@ class CompilerApp(QWidget):
         self.warning_tab = QTextEdit()
         self.warning_tab.setReadOnly(True)
         self.symbol_table_tab = QTableWidget()
-
+        self.symbol_table_tab.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers) 
         self.tabs.addTab(self.assembly_tab, "Assembly")
+        self.tabs.addTab(self.quadruples_tab,"Quadruples")
         self.tabs.addTab(self.error_tab, "Errors")
         self.tabs.addTab(self.warning_tab, "Warnings")
         self.tabs.addTab(self.output_tab, "Output")
@@ -181,7 +190,9 @@ class CompilerApp(QWidget):
             error_msg = f"Compiler execution failed\n"
 
         self.assembly_tab.setText(self.read_file(ASSIMBLE_PATH))
-        self.error_tab.setText(self.read_file(ERROR_PATH))
+        self.quadruples_tab.setText(self.read_file(QUADRUPLES_PATH))
+        
+        self.error_tab.setText(self.read_file(ERROR_PATH,True))
         if error_msg:
             self.error_tab.append(error_msg)
             self.status_label.setText("❌ Compilation failed.")
@@ -191,19 +202,25 @@ class CompilerApp(QWidget):
 
 
 
-        self.warning_tab.setText(self.read_file(WARNING_PATH))
+        self.warning_tab.setText(self.read_file(WARNING_PATH,True))
         self.highlight_lines(WARNING_PATH,error_type="warning")
         self.highlight_lines(ERROR_PATH)
 
 
     @staticmethod
-    def read_file(filename):
+    def read_file(filename, unique=False):
         try:
             with open(filename, "r") as f:
-                # Read lines, remove duplicates while preserving order
+                # Read lines
                 lines = f.readlines()
-                unique_lines = list(dict.fromkeys(line.rstrip('\n') for line in lines))
-                return '\n'.join(unique_lines)
+                # Process lines based on unique flag
+                if unique:
+                    # Remove duplicates while preserving order
+                    processed_lines = list(dict.fromkeys(line.rstrip('\n') for line in lines))
+                else:
+                    # Keep all lines, just remove trailing newlines
+                    processed_lines = [line.rstrip('\n') for line in lines]
+                return '\n'.join(processed_lines)
         except FileNotFoundError:
             return f"{filename} not found."
     def highlight_lines(self, error_file, error_type="error"):
@@ -261,6 +278,15 @@ class CompilerApp(QWidget):
             columns = line.strip().split('\t')
             for col, value in enumerate(columns):
                 self.symbol_table_tab.setItem(row, col, QTableWidgetItem(value))
+    def save_code(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Save Code File", "", "Code Files (*.txt *.c *.cpp *.dm);;All Files (*)")
+        if path:
+            try:
+                with open(path, "w") as file:
+                    file.write(self.code_editor.toPlainText())
+                self.status_label.setText(f"Saved file: {path}")
+            except Exception as e:
+                self.status_label.setText(f"Error saving file: {str(e)}")
 
 class SyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, document):

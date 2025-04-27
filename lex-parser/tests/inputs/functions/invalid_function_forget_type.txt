@@ -1,1 +1,1 @@
-func x(){int x =6;}
+func main(){int x =6;}

@@ -4,3 +4,7 @@ func int hsd(){
     x++;
     return 0;
 }
+
+func void main() {
+    
+}

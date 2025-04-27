@@ -1,4 +1,4 @@
-func int complexCalc(int a, float b, bool flag)
+func int main(int a, float b, bool flag)
 {
     int result = 0;
     float temp = b * 2.5;

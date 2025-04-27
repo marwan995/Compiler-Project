@@ -1,4 +1,4 @@
-func void ifElse() {
+func void main() {
     int x = 0;
     if(true) {
         x = 1;

@@ -1,6 +1,0 @@
-Warning at line 1: Variable a is declared but not used
- near token '}'
-Warning at line 1: Variable a is declared but not used
- near token '}'
-Warning at line 10: Variable y is declared but not used
- near token '}'

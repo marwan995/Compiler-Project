@@ -1,6 +1,6 @@
 int x = 0;
 
-func void test() {
+func void main() {
     int x = 0;
     return ;
 }

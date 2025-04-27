@@ -1,4 +1,4 @@
-func void x() {
+func void main() {
     else{
         y = 1;
     }

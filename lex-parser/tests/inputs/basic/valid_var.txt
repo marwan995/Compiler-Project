@@ -1,3 +1,6 @@
 int x = 42;
 int y= 5;
 int z = 6;
+func void main (){
+    
+}

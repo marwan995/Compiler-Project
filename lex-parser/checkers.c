@@ -23,6 +23,7 @@ Node* getNode(char* dataType) {
 }
 
 Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
+
     if (strcmp(expr1->dataType, expr2->dataType) == 0 
         && strcmp(expr1->dataType, "void") != 0 && strcmp(expr1->dataType, "string") != 0) {
         return getNode(expr1->dataType);
@@ -43,7 +44,21 @@ Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
     }
     customError("Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
 }
+bool checkSwitchValues(Node* expr) {
+    if (!expr) {
+        customError("Null expression in switch type check");
+        return false;
+    }
 
+    if (strcmp(expr->dataType, "int") != 0 &&
+        strcmp(expr->dataType, "char") != 0 &&
+        strcmp(expr->dataType, "bool") != 0) {
+        customError("Switch expression must be int, char, or bool, got %s", expr->dataType);
+        return false;
+    }
+
+    return true;
+}
 Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
     const char* invalidTypes[] = {"void", "string", "char"};
 

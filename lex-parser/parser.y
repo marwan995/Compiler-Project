@@ -65,8 +65,8 @@
 
 %type<sValue> type VARIABLE VOID function_type
 
-%type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions  unary_operations
-%type <nPtr> non_default_params default_params assign_expression
+%type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions unary_operations not_operation var_use
+%type <nPtr> non_default_params default_params assign_expression case_list switch_body switch_body_expression
 
 %%
 /*--------------------------------------------------------------------------*/
@@ -74,9 +74,8 @@
 /*--------------------------------------------------------------------------*/
 
 program:
-        declare_list                { }
-        | /* NULL */
-        ;
+    declare_list { checkMain(); }
+    | /* NULL */ { checkMain(); }
 
 /*--------------------------------------------------------------------------*/
 /* Declaration */
@@ -107,12 +106,42 @@ statement:
     | do_while_statement {}
     | SEMICOLON   {  }  /* empty statment */
     | return_statement { isFunctReturned = true; assemblyJumpCall("_call_"); quadJumpCall("_call_");  }
-    | BREAK SEMICOLON { assemblyIsInLoop() ? assemblyJumpFalseLabel(loopLabels[loopIndex]) : yyerror("break statement not in loop"); }
-    | CONTINUE SEMICOLON { assemblyIsInLoop() ? assemblyJump(loopLabels[loopIndex - 1]) : yyerror("continue statement not in loop"); }
+    | BREAK SEMICOLON {
+        if (!assemblyIsInLoop() && !assemblyIsInSwitch()) {
+            yyerror("break statement not in loop or switch case");
+        }
+        bool isInSwitch =  assemblyIsInSwitch();
+        if (assemblyIsInSwitch() && assemblyIsInLoop()) {
+            isInSwitch = switchLabels[switchIndex] > loopLabels[loopIndex]; 
+        }
+
+        if(isInSwitch) {
+            int outIndex = switchOutIndicies[switchOutIndex];
+            assemblyJump(switchLabels[outIndex]);
+        } else {
+            assemblyJumpFalseLabel(loopLabels[loopIndex]);
+        }
+    }
+    | CONTINUE SEMICOLON {
+    if (assemblyIsInLoop()) {
+        assemblyJump(loopLabels[loopIndex - 1]);
+        quadJump(quadLoopLabels[quadLoopIndex - 1]);
+    } else {
+        yyerror("continue statement not in loop");
+    }}    
     | assign_expression SEMICOLON {  }
-    | SWITCH '(' expression ')' '{' case_list '}' { printf("switch\n"); }
+    | SWITCH switch_body {}
     | block_structure {}
     ;  
+    
+switch_body :
+switch_body_expression '{' case_list '}' { assemblySwitchEnd(); quadSwitchEnd();}
+
+switch_body_expression : switch_start_body_expression expression ')' { stopPushVarInSwitch = false; $$=$2; checkSwitchValues($2); assemblySwitchBegin($2); quadSwitchBegin($2);} 
+
+switch_start_body_expression: 
+    '(' { stopPushVarInSwitch = true; } 
+    ;
 
 if_statement:
     IF '(' expression ')'
@@ -188,9 +217,19 @@ loop_exit:
         ;
 
 case_list: 
-    case_list CASE const_value ':' block_structure {  }
-    | case_list DEFAULT ':' block_structure {  }
-    |                           {}
+    case_list CASE const_value  { 
+        assemblySwitchCaseBegin($3); 
+        quadSwitchCaseBegin($3);
+    } ':' block_structure { 
+        $$ = createNode($3->dataType, "case_list"); 
+        checkSwitchValues($3);
+        assemblySwitchCaseEnd(); 
+        quadSwitchCaseEnd();
+    }
+    | case_list DEFAULT ':' block_structure {
+        $$ = createNode("default", "case_list");  
+    }
+    |  {}
     ;
 
 
@@ -302,13 +341,13 @@ assign_expression:
 
 expression:
     const_value { assemblyPushConst($1);}
-    | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); assemblyPushVar($1); }
+    | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); if(!stopPushVarInSwitch) assemblyPushVar($1); }
     | operation_expressions 
 ;    
 
 operation_expressions:
-    NOT expression              { $$ = checkComparisonExpressionTypes($2,$2); assemblyOperation("not"); }
-    | expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
+    not_operation
+    |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
     | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
     | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mul"); $$ = quadOperation("mul", $1, $3); }
     | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("div"); $$ = quadOperation("div", $1, $3); }
@@ -332,7 +371,12 @@ operation_expressions:
                                     }
     | unary_operations
     ;
+not_operation :
+    NOT var_use             {  assemblyOperation("not"); $$ = quadOperation("not", $2,NULL);  }
+    |NOT  '(' expression ')'          { assemblyOperation("not"); $$ = quadOperation("not", $3,NULL); }
 
+var_use:
+    VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); if(!stopPushVarInSwitch) assemblyPushVar($1); }
 unary_operations:
     INC VARIABLE { 
         Node* node = createNode(getSymbolDataType($2), "var"); 
@@ -341,6 +385,7 @@ unary_operations:
         validateNotConst($2);
         assemblyPrefix($2, "add"); 
         $$ = quadPrefixIncrement($2); 
+         setVarUsed($2);
     }
     | DEC VARIABLE {
         Node* node = createNode(getSymbolDataType($2), "var"); 
@@ -349,6 +394,8 @@ unary_operations:
         validateNotConst($2);
         assemblyPrefix($2, "sub"); 
         $$ = quadPrefixDecrement($2); 
+         setVarUsed($2);
+
     }
     | VARIABLE INC { 
         Node* node = createNode(getSymbolDataType($1), "var"); 
@@ -357,6 +404,8 @@ unary_operations:
         validateNotConst($1);
         assemblyPostfix($1, "add"); 
         $$ = quadPostfixIncrement($1); 
+         setVarUsed($1);
+
     }
     | VARIABLE DEC { 
         Node* node = createNode(getSymbolDataType($1), "var"); 
@@ -365,6 +414,7 @@ unary_operations:
         validateNotConst($1);
         assemblyPostfix($1, "sub"); 
         $$ = quadPostfixDecrement($1); 
+         setVarUsed($1);
     }
     ;
 
@@ -479,8 +529,9 @@ int main(int argc, char *argv[]) {
     }
 
     cleanUpFiles();
-    printSymbolTable(); 
-    if (isError) {
+    printSymbolTable();
+    cleanupSymbolTableSnapshot();
+        if (isError) {
         exit(1); 
     }
     return result;

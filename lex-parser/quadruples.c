@@ -7,13 +7,23 @@
 #include "utils.h"
 #include "symbol_table.c"
 
+#define MAX_LABELS 100
+
 static int tempCounter = 0;
 static int quadLabelCounter = 1;
+
 static int quadLoopIndex = -1;
 
-#define MAX_LABELS 100
-static int quadLoopLabels[MAX_LABELS];
+int quadSwitchIndex = -1;
+int quadSwitchSkipIndex = -1;
+int quadSwitchOutIndex = -1;
 
+int quadLoopLabels[MAX_LABELS];
+
+int quadSwitchLabels[MAX_LABELS];
+int quadSwitchSkipLabels[MAX_LABELS];
+int quadSwitchOutIndicies[MAX_LABELS];
+Node* quadSwitchExpression[MAX_LABELS];
 
 char* newTemp() {
     char* temp = (char*)malloc(10 * sizeof(char));
@@ -52,6 +62,15 @@ void printQuad(char* op, char* arg1, char* arg2, char* result) {
     fprintf(quadFileHandler.filePointer, "%s, %s, %s, %s\n", op, arg1 ? arg1 : "_", arg2 ? arg2 : "_", result ? result : "_");
 }
 
+bool quadIsInLoop() {
+    return quadLoopIndex != -1;
+}
+
+void quadJumpFalseLabel(int labelNum) {
+    char labelName[20];
+    sprintf(labelName, "FALSE_LABEL%d", labelNum);
+    printQuad("jmp", NULL, NULL, labelName);
+}
 void quadPrint(Node* node) {
     char* arg1 = nodeTypeToString(node);
     printQuad("print", arg1, NULL, NULL);
@@ -59,18 +78,20 @@ void quadPrint(Node* node) {
 }
 
 Node* quadOperation(char* operation, Node* left, Node* right) {
-    if (left == NULL || right == NULL) {
+    if (left == NULL || (right == NULL && strcmp(operation, "not") != 0)) {
         fprintf(stderr, "Error: Null operand in quadOperation\n");
         return NULL;
     }
     char* arg1 = nodeTypeToString(left);
-    char* arg2 = nodeTypeToString(right);
+    char* arg2 = strcmp(operation, "not") == 0 ? NULL : nodeTypeToString(right);
     char* temp = newTemp();
     
     printQuad(operation, arg1, arg2, temp);
     
     free(arg1);
-    free(arg2);
+    if (arg2 != NULL) {
+        free(arg2);
+    }
     
     Node* result = createNode(left->dataType, temp);
     result->name = temp;
@@ -200,3 +221,61 @@ void quadLoopExit() {
     quadLoopIndex -= 2;
 }
 
+void quadSwitchBegin(Node* expression) {
+    if(strcmp(expression->type, "const") == 0) {
+        customError("Switch expression must be a variable");
+        exit(1);
+    }
+
+    quadSwitchExpression[++quadSwitchOutIndex] = expression;
+    quadSwitchOutIndicies[quadSwitchOutIndex] = ++quadSwitchIndex;
+    quadSwitchLabels[quadSwitchIndex] = quadLabelCounter++;
+    quadSwitchSkipLabels[++quadSwitchSkipIndex] = quadLabelCounter++;;
+}
+
+void quadSwitchCaseBegin(Node* expression) {
+    char constValue[32];
+
+    char* value = nodeTypeToString(expression);
+    snprintf(constValue, sizeof(constValue), "%s", value);
+
+    char* temp = newTemp();
+    printQuad("eq", quadSwitchExpression[quadSwitchOutIndex]->name, constValue, temp);
+
+    quadSwitchLabels[++quadSwitchIndex] = quadLabelCounter++;
+    char falseLabel[32];
+    snprintf(falseLabel, sizeof(falseLabel), "L%d", quadSwitchLabels[quadSwitchIndex]);
+    printQuad("jf", temp, "_", falseLabel);
+
+    char skipLabel[32];
+    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("label", skipLabel, "_", "_");
+}
+
+void quadSwitchCaseEnd() {
+    quadSwitchSkipLabels[++quadSwitchSkipIndex] = quadLabelCounter++;
+
+    char skipLabel[32];
+    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("jmp", skipLabel, "_", "_");
+
+    char falseLabel[32];
+    snprintf(falseLabel, sizeof(falseLabel), "L%d", quadSwitchLabels[quadSwitchIndex]);
+    printQuad("label", falseLabel, "_", "_");
+}
+
+void quadSwitchEnd() {
+    char skipLabel[32];
+    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("label", skipLabel, "_", "_");
+
+    int outIndex = quadSwitchOutIndicies[quadSwitchOutIndex];
+
+    char outLabel[32];
+    snprintf(outLabel, sizeof(outLabel), "L%d", quadSwitchLabels[outIndex]);
+    printQuad("label", outLabel, "_", "_");
+
+    quadSwitchIndex = outIndex - 1;
+    quadSwitchSkipIndex = outIndex - 1;
+    quadSwitchOutIndex--;
+}

@@ -1,7 +1,7 @@
-func void testMissingDoWhile() {
+func void main() {
     int i = 0;
     do {
         i = i + 1;
         print(i);
-    } while(i < 10)  // missing semicolon
+    } while(i < 10)  # missing semicolon
 }

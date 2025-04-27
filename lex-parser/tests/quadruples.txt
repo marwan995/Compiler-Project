@@ -1,3 +1,5 @@
+func_label, main, _, _
+pop, _call_, _, _
 assign, 0, _, i
 assign, 0, _, sum
 label, _, _, LABEL1
@@ -8,4 +10,6 @@ assign, t1, _, sum
 add, i, 1, t2
 assign, t2, _, i
 jmp, _, _, LABEL1
-label, _, _, LABEL2
+label, _, _, FALSE_LABEL2
+print, sum, _, _
+jmp, _call_, _, _

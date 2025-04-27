@@ -1,4 +1,4 @@
-func int testInt(int x) {
+func int main(int x) {
     switch (x) {
         case 1: {return 10; }
         case 2: {print(2); break;}
