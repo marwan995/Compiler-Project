@@ -12,4 +12,5 @@ assign      	t2          	_           	i
 jmp         	_           	_           	LABEL1      
 label       	_           	_           	FALSE_LABEL2
 print       	sum         	_           	_           
+return      	_           	_           	_           
 jmp         	_call_      	_           	_           

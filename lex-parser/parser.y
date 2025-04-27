@@ -52,11 +52,6 @@
 
 %token SWITCH CASE DEFAULT
 
-%nonassoc IFX
-%nonassoc ELSE
-%nonassoc NOT
-%nonassoc UMINUS
-
 %left OR
 %left AND
 %left EQ NE
@@ -64,9 +59,14 @@
 %left ADD SUB
 %left MUL DIV MOD
 
+%nonassoc IFX
+%nonassoc ELSE
+%nonassoc NOT
+%nonassoc UMINUS
+
 %type<sValue> type VARIABLE VOID function_type
 
-%type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions unary_operations not_operation var_use
+%type <nPtr> statement_list statement var_declare params expression const_value function_declare declare_list declare operation_expressions unary_operations   function_call
 %type <nPtr> non_default_params default_params assign_expression case_list switch_body switch_body_expression
 %type <nPtr> return_statement
 
@@ -349,7 +349,6 @@ var_declare:
     | type VARIABLE ASSIGN expression { 
                                         validateAssignmentType($1, $4) ? insertVarConst($2, "var", $1, true, yylineno) : yyerror("Type mismatch in assignment");
                                         assemblyPopVar($2);
-                                        printf("HELP 1\n");
                                         quadAssign($2, $4);
                                       }
     ;
@@ -371,12 +370,15 @@ expression:
 ;    
 
 operation_expressions:
-    not_operation
-    | SUB expression %prec UMINUS { 
-        printf("Unary minus\n");
+    NOT expression %prec NOT { 
         $$ = checkUnaryOperationTypes($2); 
-        assemblyUnaryMinus($2->name);
-        $$ = quadUnaryMinus($2->name);
+        assemblyUnaryMinusNot($2->name,"not"); 
+        $$ = quadUnaryOperationNotMinus($2,"not");
+    }
+    | SUB expression %prec UMINUS { 
+        $$ = checkUnaryOperationTypes($2); 
+        assemblyUnaryMinusNot($2->name,"minus");
+        $$ = quadUnaryOperationNotMinus($2,"minus");
     }
     |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
     | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
@@ -394,24 +396,17 @@ operation_expressions:
     | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("and"); $$ = quadOperation("and", $1, $3); }
     | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("or"); $$ = quadOperation("or", $1, $3); }
     | '(' expression ')'          {$$ = $2; }
-    | VARIABLE '(' argument_list ')' { 
-                                        validateFunctionCall($1,$3->types,$3->count);
-                                        $$ = createNode(getSymbolDataType($1), "func");
-                                        printf("HELP 2\n");
-                                        assemblyFunctionCall($1, $3->count);
-                                        printf("HELP 3\n");
-                                        quadFunctionCall($1, $3->count);
-                                        printf("HELP 4\n");
-                                    }
+    |function_call
     | unary_operations
     ;
-not_operation :
-    NOT var_use             {  assemblyOperation("not"); $$ = quadOperation("not", $2,NULL);  }
-    |NOT  '(' expression ')'          { assemblyOperation("not"); $$ = quadOperation("not", $3,NULL); }
 
-var_use:
-    VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); if(!stopPushVarInSwitch) assemblyPushVar($1); }
-
+function_call:
+ VARIABLE '(' argument_list ')' { 
+                                        validateFunctionCall($1,$3->types,$3->count);
+                                        $$ = createNode(getSymbolDataType($1), "func");
+                                        assemblyFunctionCall($1, $3->count);
+                                        $$ = quadFunctionCall($1, $3->count);
+                                    }
 unary_operations:
     INC VARIABLE { 
         Node* node = createNode(getSymbolDataType($2), "var"); 

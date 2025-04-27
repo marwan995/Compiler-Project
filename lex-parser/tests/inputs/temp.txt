@@ -4,5 +4,5 @@ func int testInt(int x) {
 }
 
 func void main() {
-    int x = testInt(1) + testInt(2);
+    int x = !testInt(2);
 } 

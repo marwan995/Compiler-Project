@@ -8,9 +8,8 @@ pop         	_call_      	_           	_
 push        	pc          	_           	_           
 add         	pc          	2           	pc          
 jmp         	func_testInt	_           	_           
-push        	pc          	_           	_           
-add         	pc          	2           	pc          
-jmp         	func_testInt	_           	_           
-add         	@ret        	@ret        	t0          
-assign      	t0          	_           	x           
+not         	@ret        	_           	t0          
+add         	t0          	85          	t1          
+assign      	t1          	_           	x           
+print       	x           	_           	_           
 jmp         	_call_      	_           	_           

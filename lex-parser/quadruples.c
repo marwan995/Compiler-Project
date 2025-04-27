@@ -84,6 +84,7 @@ void quadPrint(Node* node) {
 }
 
 Node* quadOperation(char* operation, Node* left, Node* right) {
+    printf("quadOperation: %s\n", operation);
     if (left == NULL || (right == NULL && strcmp(operation, "not") != 0)) {
         fprintf(stderr, "Error: Null operand in quadOperation\n");
         return NULL;
@@ -105,19 +106,23 @@ Node* quadOperation(char* operation, Node* left, Node* right) {
 }
 
 void quadAssign(char* var, Node* expr) {
-    printf("expr type %s\n", expr->type);
     char* arg1 = nodeTypeToString(expr);
     printQuad("assign", arg1, NULL, var);
     free(arg1);
 }
 
-Node* quadUnaryMinus(char* varName) {
+Node* quadUnaryOperationNotMinus(Node* node,char*oper) {
     char* temp = newTemp();
-    printQuad("neg", varName, "_", temp);
-    
-    Node* node = createNode(getSymbolDataType(varName), temp);
-    node->name = temp;
-    return node;
+    bool isReturnFromFunction = strcmp(node->type, "@ret") == 0;
+
+    char* varName = isReturnFromFunction ? "@ret" : node->name;
+    char* dataType = isReturnFromFunction ? node->dataType : getSymbolDataType(varName);
+    char* type = isReturnFromFunction ? "var" : node->type;
+
+    printQuad(oper, varName, "_", temp);
+    Node* retNode = createNode(dataType, type);
+    retNode->name = temp;
+    return retNode;
 }
 
 Node* quadUnaryOperation(char* varName, char* op, bool isPrefix) {
@@ -200,7 +205,7 @@ void quadJumpCall() {
     printQuad("jmp", "_call_", "_", "_");
 }
 
-void quadFunctionCall(char *name, int argCount) {
+Node* quadFunctionCall(char *name, int argCount) {
     int funcIdx = lookup(name);
 
     for (int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
@@ -216,6 +221,10 @@ void quadFunctionCall(char *name, int argCount) {
     char funcLabel[128];
     snprintf(funcLabel, sizeof(funcLabel), "func_%s", name);
     printQuad("jmp", funcLabel, "_", "_");
+
+    Node* retNode = createNode(symbolTable[funcIdx].dataType, "@ret"); // the @ret can be changed
+    retNode->name = strdup("@ret");
+    return retNode;
 }
 
 void quadLoopInit() {
@@ -298,7 +307,6 @@ Node* quadReturn(Node* node) {
         printQuad("return", "_", "_", "_");
         return createNode("void", "_");
     } else {
-        printf("HELP 5\n");
         char* arg1 = nodeTypeToString(node);
         printQuad("return", "_", "_", arg1);
         free(arg1);

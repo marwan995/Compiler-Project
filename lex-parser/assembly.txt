@@ -5,16 +5,16 @@ func_testInt:
 	jmp _call_
 func_main:
 	pop _call_
-	push 1
-	push pc
-	push 2
-	add
-	jmp func_testInt
 	push 2
 	push pc
 	push 2
 	add
 	jmp func_testInt
+	not
+	pop @ret
+	push 85
 	add
 	pop x
+	push x
+	print
 	jmp _call_

@@ -18,10 +18,4 @@ make clean
 # run tests 
 make test
 ```
-- we may add a condition to check that the function have return for all its block structure children
-- we need to add the minus operation (x = -x) (DONE)
 - full symbol table
-- switch case (5alas? 3omda tmam, enta tmam?) (DONE)
-- Not expression correct way to wright not (!y)
-- retrun value is neglacted which is wrong (DONE)
-- see assembly code for return func(x) + func(y)

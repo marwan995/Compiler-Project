@@ -72,9 +72,8 @@ void assemblyPopVar(char* name) {
     return;
 }
 
-void assemblyUnaryMinus(char* name) {
-    // assemblyPushVar(name);
-    assemblyOperation("neg");
+void assemblyUnaryMinusNot(char* name,char*oper) {
+    assemblyOperation(oper);
     assemblyPopVar(name);
 }
 
