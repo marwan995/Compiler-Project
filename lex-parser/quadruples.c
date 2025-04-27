@@ -27,7 +27,7 @@ Node* quadSwitchExpression[MAX_LABELS];
 
 char* newTemp() {
     char* temp = (char*)malloc(10 * sizeof(char));
-    sprintf(temp, "t%d", tempCounter++);
+    sprintf(temp, "0t%d", tempCounter++);
     return temp;
 }
 
@@ -114,9 +114,9 @@ void quadAssign(char* var, Node* expr) {
 Node* quadUnaryOperationNotMinus(Node* node,char*oper) {
     char* temp = newTemp();
     bool isReturnFromFunction = strcmp(node->type, "@ret") == 0;
-
+    
     char* varName = isReturnFromFunction ? "@ret" : node->name;
-    char* dataType = isReturnFromFunction ? node->dataType : getSymbolDataType(varName);
+    char* dataType = node->dataType;
     char* type = isReturnFromFunction ? "var" : node->type;
 
     printQuad(oper, varName, "_", temp);
