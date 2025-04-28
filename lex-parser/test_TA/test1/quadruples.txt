@@ -42,6 +42,7 @@ label       	_           	_           	LABEL5
 add         	i           	1           	i           
 ge          	i           	7           	0t11        
 if_false    	0t11        	_           	FALSE_LABEL6
+jmp         	_           	_           	FALSE_LABEL4
 jmp         	_           	_           	LABEL6      
 label       	_           	_           	FALSE_LABEL6
 label       	_           	_           	LABEL6      
@@ -52,7 +53,7 @@ assign      	i           	_           	0t12
 sub         	i           	1           	i           
 eq          	i           	4           	0t13        
 if_false    	0t13        	_           	FALSE_LABEL8
-jmp         	_           	_           	LABEL2      
+jmp         	_           	_           	LABEL5      
 jmp         	_           	_           	LABEL8      
 label       	_           	_           	FALSE_LABEL8
 label       	_           	_           	LABEL8      
@@ -70,11 +71,13 @@ label       	L9          	_           	_
 eq          	i           	1           	0t16        
 jf          	0t16        	_           	L11         
 label       	L10         	_           	_           
+jmp         	_           	_           	LABEL10     
 jmp         	L12         	_           	_           
 label       	L11         	_           	_           
 eq          	i           	2           	0t17        
 jf          	0t17        	_           	L13         
 label       	L12         	_           	_           
+jmp         	_           	_           	LABEL10     
 jmp         	L14         	_           	_           
 label       	L13         	_           	_           
 assign      	i           	_           	0t18        

@@ -126,14 +126,17 @@ statement:
         if(isInSwitch) {
             int outIndex = switchOutIndicies[switchOutIndex];
             assemblyJump(switchLabels[outIndex]);
+            quadJump(switchLabels[outIndex]);
         } else {
+            printf("HELLLLLP\n");
             assemblyJumpFalseLabel(loopLabels[loopIndex]);
+            quadJumpFalseLabel(loopLabels[loopIndex]);
         }
     }
     | CONTINUE SEMICOLON {
     if (assemblyIsInLoop()) {
-        assemblyJump(loopLabels[loopIndex - 1]);
-        quadJump(quadLoopLabels[quadLoopIndex - 1]);
+        assemblyJump(loopLabels[loopIndex]);
+        quadJump(quadLoopLabels[quadLoopIndex]);
     } else {
         yyerror("continue statement not in loop");
     }}    
@@ -155,24 +158,26 @@ if_statement:
     IF '(' expression ')'
         { 
             ifLabels[++ifIndex] = labelCounter++; 
+            quadIfLabels[++quadIfIndex] = quadLabelCounter++;
             assemblyJumpFalse(ifLabels[ifIndex]); 
-            quadJumpIfFalse($3, ifLabels[ifIndex]);
+            printf("\n --- quadIfLabels[%d]: %d\n", quadIfIndex, quadIfLabels[ifIndex]);
+            quadJumpIfFalse($3, quadIfLabels[quadIfIndex]);
         }
     block_structure 
         { 
             assemblyJump(ifLabels[ifIndex]); 
             assemblyFalseLabel(ifLabels[ifIndex]); 
-            quadJump(ifLabels[ifIndex]);
-            quadFalseLabel(ifLabels[ifIndex]);
+            quadJump(quadIfLabels[quadIfIndex]);
+            quadFalseLabel(quadIfLabels[quadIfIndex]);
         } 
     else_block 
         { 
-            assemblyLabel(ifLabels[ifIndex]); 
-            quadLabel(ifLabels[ifIndex--]);
+            assemblyLabel(ifLabels[ifIndex--]); 
+            quadLabel(quadIfLabels[quadIfIndex--]);
         }
 
 else_block:
-    ELSE {  } block_structure {  }
+    ELSE {  } block_structure {}
     | ELSE { } if_statement { }
     | { } 
     ;
@@ -201,6 +206,7 @@ while_statement:
 do_while_statement:
     DO
         { assemblyLoopInit();
+         printf("DO WHILE\n");
           quadLoopInit();
         } 
     block_structure 
@@ -281,6 +287,7 @@ for_loop_expression:
 
 return_statement:
     RETURN expression SEMICOLON { 
+        printf("Node type %s\n", $2->dataType);
         validateReturnType($2->dataType, yylineno); 
         markFunctionReturnType(yylineno); 
         $$ = quadReturn($2);
@@ -372,7 +379,7 @@ assign_expression:
 expression:
     const_value { assemblyPushConst($1);}
     | VARIABLE { checkInitialized($1, yylineno);$$ = createVarNode(getSymbolDataType($1), "var", $1); setVarUsed($1); if(!stopPushVarInSwitch) assemblyPushVar($1); }
-    | operation_expressions 
+    | operation_expressions {}
 ;    
 
 operation_expressions:
@@ -403,7 +410,7 @@ operation_expressions:
     | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("gt"); $$ = quadOperation("gt", $1, $3); }
     | expression GE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("ge"); $$ = quadOperation("ge", $1, $3); }
     | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("le"); $$ = quadOperation("le", $1, $3); }
-    | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("eq"); $$ = quadOperation("eq", $1, $3); }
+    | expression EQ expression          { $$ = checkComparisonExpressionTypes($1, $3); assemblyOperation("eq"); $$ = quadOperation("eq", $1, $3); }
     | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("ne"); $$ = quadOperation("ne", $1, $3); }
 
     | expression BITWISE_OR expression  { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("add");  $$ = quadOperation("bit_or", $1, $3); }

@@ -1,2 +1,0 @@
-Error at line 3: break statement not in loop or switch case near ';'
-Line:         break;

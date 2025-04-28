@@ -14,10 +14,12 @@ static int quadLabelCounter = 1;
 
 static int quadLoopIndex = -1;
 
+int quadIfIndex = -1;
 int quadSwitchIndex = -1;
 int quadSwitchSkipIndex = -1;
 int quadSwitchOutIndex = -1;
 
+int quadIfLabels[MAX_LABELS];
 int quadLoopLabels[MAX_LABELS];
 
 int quadSwitchLabels[MAX_LABELS];
@@ -83,6 +85,22 @@ void quadPrint(Node* node) {
     free(arg1);
 }
 
+bool isLogicalOperation(const char* operation) {
+    if (operation == NULL) {
+        return false;
+    }
+
+    return strcmp(operation, "lt") == 0 ||
+           strcmp(operation, "gt") == 0 ||
+           strcmp(operation, "ge") == 0 ||
+           strcmp(operation, "le") == 0 ||
+           strcmp(operation, "eq") == 0 ||
+           strcmp(operation, "ne") == 0 ||
+           strcmp(operation, "and") == 0 ||
+           strcmp(operation, "or") == 0 ||
+           strcmp(operation, "not") == 0;
+}
+
 Node* quadOperation(char* operation, Node* left, Node* right) {
     printf("quadOperation: %s\n", operation);
     if (left == NULL || (right == NULL && strcmp(operation, "not") != 0)) {
@@ -100,7 +118,15 @@ Node* quadOperation(char* operation, Node* left, Node* right) {
         free(arg2);
     }
     
-    Node* result = createNode(left->dataType, temp);
+    char* dataType;
+    if (isLogicalOperation(operation)) {
+        dataType = "bool"; 
+    } else {
+        dataType = left->dataType;
+    }
+    printf("in function dataType: %s\n",dataType);
+
+    Node* result = createNode(dataType, temp);
     result->name = temp;
     return result;
 }
@@ -226,7 +252,7 @@ Node* quadFunctionCall(char *name, int argCount) {
 
     char funcLabel[128];
     snprintf(funcLabel, sizeof(funcLabel), "func_%s", name);
-    printQuad("jmp", funcLabel, "_", "_");
+    printQuad("jmp", "_", "_", funcLabel);
 
     Node* retNode = createNode(symbolTable[funcIdx].dataType, "@ret"); // the @ret can be changed
     retNode->name = strdup("@ret");
@@ -234,6 +260,7 @@ Node* quadFunctionCall(char *name, int argCount) {
 }
 
 void quadLoopInit() {
+    printf("quadLoopInit: %d\n", quadLoopIndex);
     quadLoopLabels[++quadLoopIndex] = quadLabelCounter++;
     quadLabel(quadLoopLabels[quadLoopIndex]);
 }
@@ -271,36 +298,36 @@ void quadSwitchCaseBegin(Node* expression) {
 
     quadSwitchLabels[++quadSwitchIndex] = quadLabelCounter++;
     char falseLabel[32];
-    snprintf(falseLabel, sizeof(falseLabel), "L%d", quadSwitchLabels[quadSwitchIndex]);
+    snprintf(falseLabel, sizeof(falseLabel), "Label%d", quadSwitchLabels[quadSwitchIndex]);
     printQuad("jf", temp, "_", falseLabel);
 
     char skipLabel[32];
-    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
-    printQuad("label", skipLabel, "_", "_");
+    snprintf(skipLabel, sizeof(skipLabel), "Label%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("label", "_", "_", skipLabel);
 }
 
 void quadSwitchCaseEnd() {
     quadSwitchSkipLabels[++quadSwitchSkipIndex] = quadLabelCounter++;
 
     char skipLabel[32];
-    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
-    printQuad("jmp", skipLabel, "_", "_");
+    snprintf(skipLabel, sizeof(skipLabel), "Label%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("jmp", "_", "_", skipLabel);
 
     char falseLabel[32];
-    snprintf(falseLabel, sizeof(falseLabel), "L%d", quadSwitchLabels[quadSwitchIndex]);
-    printQuad("label", falseLabel, "_", "_");
+    snprintf(falseLabel, sizeof(falseLabel), "Label%d", quadSwitchLabels[quadSwitchIndex]);
+    printQuad("label", "_", "_", falseLabel);
 }
 
 void quadSwitchEnd() {
     char skipLabel[32];
-    snprintf(skipLabel, sizeof(skipLabel), "L%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
-    printQuad("label", skipLabel, "_", "_");
+    snprintf(skipLabel, sizeof(skipLabel), "Label%d", quadSwitchSkipLabels[quadSwitchSkipIndex]);
+    printQuad("label", "_", "_", skipLabel);
 
     int outIndex = quadSwitchOutIndicies[quadSwitchOutIndex];
 
     char outLabel[32];
-    snprintf(outLabel, sizeof(outLabel), "L%d", quadSwitchLabels[outIndex]);
-    printQuad("label", outLabel, "_", "_");
+    snprintf(outLabel, sizeof(outLabel), "Label%d", quadSwitchLabels[outIndex]);
+    printQuad("label", "_", "_", outLabel);
 
     quadSwitchIndex = outIndex - 1;
     quadSwitchSkipIndex = outIndex - 1;

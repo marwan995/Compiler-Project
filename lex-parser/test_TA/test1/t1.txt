@@ -70,6 +70,6 @@ func int main()
     bool q = true;
     flag = !flag && !q || (i>=j);
 
-    s = s+t; # miss match types
+    s = s+t;
     return add(i,j);
 }
