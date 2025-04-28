@@ -412,16 +412,14 @@ void checkLastFunctionReturnType(int lineNumber) {
 }
 
 void checkInitialized(char *name, int lineNumber) {
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        if (symbolTable[i].id != -1 && strcmp(symbolTable[i].name, name) == 0) { 
-            if (symbolTable[i].isParam) {
-              continue; // Skip checking for parameters
-            }
-            if (!symbolTable[i].isInitialized) {
-                customError("Variable %s is not initialized at line %i\n", name, lineNumber);
-            }
-        }
+    int i = lookup(name);
+    if (symbolTable[i].isParam) {
+        return; // Skip checking for parameters
     }
+    if (!symbolTable[i].isInitialized) {
+        customError("Variable %s is not initialized at line %i\n", name, lineNumber);
+    }
+
 }
 
 int getInitializedParamCount(int funcIdx) {
