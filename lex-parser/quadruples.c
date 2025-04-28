@@ -252,7 +252,6 @@ void quadLoopExit() {
 void quadSwitchBegin(Node* expression) {
     if(strcmp(expression->type, "const") == 0) {
         customError("Switch expression must be a variable");
-        exit(1);
     }
 
     quadSwitchExpression[++quadSwitchOutIndex] = expression;

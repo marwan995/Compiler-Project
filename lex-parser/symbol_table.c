@@ -250,6 +250,7 @@ int lookup(char *name) {
         currentScope--;
     }
     customError("Variable %s is not defined", name);
+    exit(1);
 }
 
 void setVarUsed(char *name) {
@@ -375,7 +376,7 @@ void validateReturnType(char *returnType, int lineNumber) {
     }
 
     if (strcmp(symbolTable[lastFunctionIdx].dataType, returnType) != 0) {
-        customError("Error: Return type mismatch for function %s: expected %s, got %s at line %i\n",
+        customError("Return type mismatch for function %s: expected %s, got %s at line %i\n",
                symbolTable[lastFunctionIdx].name, symbolTable[lastFunctionIdx].dataType, returnType, lineNumber);
     }
 }

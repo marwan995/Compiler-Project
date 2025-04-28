@@ -174,7 +174,6 @@ void assemblySwitchBegin(Node* expression) {
     // init the out label for the switch statement
     if(strcmp(expression->type, "const")  == 0) {
         customError("Switch expression must be a variable");
-        exit(1); 
     }
 
     switchExpression[++switchOutIndex] = expression;

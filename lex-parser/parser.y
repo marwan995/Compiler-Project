@@ -416,6 +416,7 @@ operation_expressions:
 function_call:
  VARIABLE '(' argument_list ')' { 
                                         validateFunctionCall($1,$3->types,$3->count);
+
                                         $$ = createNode(getSymbolDataType($1), "func");
                                         assemblyFunctionCall($1, $3->count);
                                         $$ = quadFunctionCall($1, $3->count);
@@ -516,7 +517,8 @@ void yyerror(char *s) {
         }
         current_line++;
     }
-    
+    cleanUpFiles();
+    printSymbolTable();
     fseek(yyin, file_pos, SEEK_SET);
     if(strcmp(s, "syntax error") == 0) {
 

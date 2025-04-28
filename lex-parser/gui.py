@@ -198,7 +198,7 @@ class CompilerApp(QWidget):
             self.status_label.setText("❌ Compilation failed.")
         else:
             self.status_label.setText("✅ Compilation complete.")
-            self.load_symbol_table()
+        self.load_symbol_table()
 
 
 
