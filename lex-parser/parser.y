@@ -48,6 +48,8 @@
 
 %token ADD SUB MUL DIV MOD SEMICOLON
 
+%token BITWISE_OR BITWISE_AND BITWISE_XOR BITWISE_NOT SHIFT_LEFT SHIFT_RIGHT
+
 %token FUNCTION RETURN PRINT
 
 %token SWITCH CASE DEFAULT
@@ -61,7 +63,7 @@
 
 %nonassoc IFX
 %nonassoc ELSE
-%nonassoc NOT
+%nonassoc LOGICAL_NOT
 %nonassoc UMINUS
 
 %type<sValue> type VARIABLE VOID function_type
@@ -370,15 +372,20 @@ expression:
 ;    
 
 operation_expressions:
-    NOT expression %prec NOT { 
+    NOT expression %prec LOGICAL_NOT { 
         $$ = checkUnaryOperationTypes($2); 
-        assemblyUnaryMinusNot($2->name,"not"); 
-        $$ = quadUnaryOperationNotMinus($2,"not");
+        assemblyUnaryMinusNot($2->name, "not"); 
+        $$ = quadUnaryOperationNotMinus($2, "not");
     }
     | SUB expression %prec UMINUS { 
         $$ = checkUnaryOperationTypes($2); 
-        assemblyUnaryMinusNot($2->name,"minus");
-        $$ = quadUnaryOperationNotMinus($2,"minus");
+        assemblyUnaryMinusNot($2->name, "minus");
+        $$ = quadUnaryOperationNotMinus($2, "minus");
+    }
+    | BITWISE_NOT expression %prec UMINUS { 
+        $$ = checkUnaryOperationTypes($2); 
+        assemblyUnaryMinusNot($2->name, "bit_not"); 
+        $$ = quadUnaryOperationNotMinus($2,"bit_not");
     }
     |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
     | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
@@ -392,6 +399,12 @@ operation_expressions:
     | expression LE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("le"); $$ = quadOperation("le", $1, $3); }
     | expression EQ expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("eq"); $$ = quadOperation("eq", $1, $3); }
     | expression NE expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("ne"); $$ = quadOperation("ne", $1, $3); }
+
+    | expression BITWISE_OR expression  { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("add");  $$ = quadOperation("bit_or", $1, $3); }
+    | expression BITWISE_XOR expression { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("xor"); $$ = quadOperation("xor", $1, $3); }
+    | expression BITWISE_AND expression { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("bit_and");  $$ = quadOperation("bit_and", $1, $3); }
+    | expression SHIFT_LEFT expression { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("shl"); $$ = quadOperation("shl", $1, $3); }
+    | expression SHIFT_RIGHT expression { $$= checkBitwiseExpressionTypes($1, $3); assemblyOperation("shr"); $$ = quadOperation("shr", $1, $3); }
 
     | expression AND expression         { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("and"); $$ = quadOperation("and", $1, $3); }
     | expression OR expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("or"); $$ = quadOperation("or", $1, $3); }

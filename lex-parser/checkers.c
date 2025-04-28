@@ -44,6 +44,23 @@ Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
     }
     customError("Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
 }
+
+
+Node* checkBitwiseExpressionTypes(Node* expr1, Node* expr2) {
+    if (strcmp(expr1->dataType, expr2->dataType) == 0 && strcmp(expr1->dataType, "int") == 0) {
+        return getNode("int");
+    } else if ((strcmp(expr1->dataType, "int") == 0 && strcmp(expr2->dataType, "char") == 0) ||
+               (strcmp(expr1->dataType, "char") == 0 && strcmp(expr2->dataType, "int") == 0)) {
+        return getNode("int");
+    } else if ((strcmp(expr1->dataType, "bool") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
+        return getNode("int");
+    } else if ((strcmp(expr1->dataType, "bool") == 0 && strcmp(expr2->dataType, "int") == 0) ||
+               (strcmp(expr1->dataType, "int") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
+        return getNode("int");
+    }
+    customError("Invalid data types for bitwise operation: %s %s\n", expr1->dataType, expr2->dataType);
+}
+
 bool checkSwitchValues(Node* expr) {
     if (!expr) {
         customError("Null expression in switch type check");
@@ -81,6 +98,16 @@ Node* checkUnaryOperationTypes (Node* expr) {
     } else {
         printf("Error: Invalid dataType for unary operation: %s\n", expr->dataType);
         customError("Invalid dataType for unary operation: %s\n", expr->dataType);
+    }
+    return NULL;
+}
+
+Node* checkUnaryBitwiseOperationTypes (Node* expr) {
+    if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "char") == 0
+        || strcmp(expr->dataType, "bool") == 0) {
+        return getNode("int");
+    } else {
+        customError("Invalid dataType for unary bitwise operation: %s\n", expr->dataType);
     }
     return NULL;
 }

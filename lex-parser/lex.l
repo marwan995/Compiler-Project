@@ -49,6 +49,13 @@ void yyerror(char *);
 "%"             return MOD;
 ";"             return SEMICOLON;
 
+    /* bitwise operations */
+"|"            return BITWISE_OR;
+"&"            return BITWISE_AND;
+"^"            return BITWISE_XOR;
+"~"            return BITWISE_NOT;
+"<<"           return SHIFT_LEFT;
+">>"           return SHIFT_RIGHT;
 
     /*condtions*/
 "if"            return IF;
