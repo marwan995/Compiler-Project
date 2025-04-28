@@ -1,0 +1,36 @@
+Warning at line 6: Variable ba is declared but not used
+ near token '}'
+Warning at line 7: Variable bb is declared but not used
+ near token '}'
+Warning at line 8: Variable ca is declared but not used
+ near token '}'
+Warning at line 9: Variable cb is declared but not used
+ near token '}'
+Warning at line 13: Variable r0 is declared but not used
+ near token '}'
+Warning at line 14: Variable r1 is declared but not used
+ near token '}'
+Warning at line 15: Variable r2 is declared but not used
+ near token '}'
+Warning at line 16: Variable r3 is declared but not used
+ near token '}'
+Warning at line 17: Variable r4 is declared but not used
+ near token '}'
+Warning at line 19: Variable rf0 is declared but not used
+ near token '}'
+Warning at line 20: Variable rf1 is declared but not used
+ near token '}'
+Warning at line 21: Variable rf2 is declared but not used
+ near token '}'
+Warning at line 22: Variable rf3 is declared but not used
+ near token '}'
+Warning at line 37: Variable u0 is declared but not used
+ near token '}'
+Warning at line 38: Variable u1 is declared but not used
+ near token '}'
+Warning at line 39: Variable u2 is declared but not used
+ near token '}'
+Warning at line 40: Variable u3 is declared but not used
+ near token '}'
+Warning at line 41: Variable u4 is declared but not used
+ near token '}'
