@@ -22,8 +22,11 @@ Node* getNode(char* dataType) {
     return newNode;
 }
 
-Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
-
+Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2,char* oper ) {
+    if (strcmp(expr1->dataType, expr2->dataType) == 0 
+    && strcmp(expr1->dataType, "string") == 0&&strcmp(oper,"add")==0) {
+    return getNode(expr1->dataType);
+}
     if (strcmp(expr1->dataType, expr2->dataType) == 0 
         && strcmp(expr1->dataType, "void") != 0 && strcmp(expr1->dataType, "string") != 0) {
         return getNode(expr1->dataType);
@@ -42,6 +45,7 @@ Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2) {
                (strcmp(expr1->dataType, "float") == 0 && strcmp(expr2->dataType, "bool") == 0)) {
         return getNode("float");
     }
+
     customError("Type mismatch between %s and %s\n", expr1->dataType, expr2->dataType);
 }
 
@@ -93,7 +97,7 @@ Node* checkComparisonExpressionTypes (Node* expr1, Node* expr2) {
 Node* checkUnaryOperationTypes (Node* expr) {
     if (strcmp(expr->dataType, "int") == 0 || strcmp(expr->dataType, "float") == 0) {
         return getNode(expr->dataType);
-    } else if (strcmp(expr->dataType, "char") == 0) {
+    } else if (strcmp(expr->dataType, "char") == 0 || strcmp(expr->dataType, "bool") == 0) {
         return getNode("int");
     } else {
         printf("Error: Invalid dataType for unary operation: %s\n", expr->dataType);

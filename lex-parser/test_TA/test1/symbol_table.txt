@@ -1,0 +1,17 @@
+ID	Name	Type	DataType	Scope	Initialized	Line	Used	Param
+0	add	func	int	0	0	2	0	0
+1	a	param	int	1	0	2	0	1
+2	b	param	int	1	0	2	0	1
+3	a	var	int	2	1	2	0	0
+4	function	func	void	0	0	4	1	0
+5	main	func	int	0	0	8	0	0
+6	i	var	int	1	1	10	0	0
+7	j	var	int	1	1	11	0	0
+8	flag	var	bool	1	1	12	0	0
+9	ch	var	char	1	1	13	0	0
+10	f	var	float	1	1	14	0	0
+11	s	var	string	1	1	15	0	0
+12	t	var	string	1	1	16	0	0
+13	i	var	int	2	1	18	0	0
+14	k	var	int	2	1	20	1	0
+15	q	var	bool	1	1	70	1	0

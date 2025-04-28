@@ -83,7 +83,7 @@ void yyerror(char *);
 
 [ \t\n]+        { /* ignore whitespace */}
 
-.              {printf("Found char: %s", *yytext); return *yytext;}
+.              {yyerror("UNDEFINED SYMBOL");}
 
 %%
 int yywrap(void) {

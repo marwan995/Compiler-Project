@@ -1,0 +1,3 @@
+Error at line 73: Type mismatch between string and string
+ near ';'
+Line:     s = s+t; # miss match types

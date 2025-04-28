@@ -1,0 +1,241 @@
+func_add:
+	pop _call_
+	pop b
+	pop a
+	push 1
+	pop a
+	push a
+	push b
+	add
+	pop a
+	push a
+	push b
+	add
+	jmp _call_
+func_function:
+	pop _call_
+	jmp _call_
+func_main:
+	pop _call_
+	push 0
+	pop i
+	push 5
+	pop j
+	push true
+	pop flag
+	push 'X'
+	pop ch
+	push 2.500000
+	pop f
+	push "foo"
+	pop s
+	push "bar"
+	pop t
+	push 3
+	pop i
+	push i
+	push j
+	add
+	pop i
+	push 0
+	pop k
+LABEL1:
+	push k
+	push 3
+	lt
+	jf FALSE_LABEL2
+	push k
+	pop _temp_
+	push k
+	push 1
+	add
+	pop k
+	push _temp_
+	push i
+	push k
+	add
+	pop i
+LABEL3:
+	push i
+	push 10
+	lt
+	jf FALSE_LABEL4
+	push i
+	push 1
+	bit_and
+	push 0
+	eq
+	pop flag
+	push flag
+	jf FALSE_LABEL5
+	jmp LABEL5
+FALSE_LABEL5:
+	push k
+	pop _temp_
+	push k
+	push 1
+	add
+	pop k
+	push _temp_
+LABEL5:
+	push i
+	push 1
+	add
+	pop i
+	push 7
+	ge
+	jf FALSE_LABEL6
+	jmp FALSE_LABEL4
+	jmp LABEL6
+FALSE_LABEL6:
+LABEL6:
+	jmp LABEL3
+FALSE_LABEL4:
+LABEL7:
+	push i
+	pop _temp_
+	push i
+	push 1
+	sub
+	pop i
+	push _temp_
+	push i
+	push 4
+	eq
+	jf FALSE_LABEL8
+	jmp LABEL2
+	jmp LABEL8
+FALSE_LABEL8:
+LABEL8:
+	push i
+	push 0
+	eq
+	jf FALSE_LABEL9
+	jmp LABEL7
+FALSE_LABEL9:
+	jmp LABEL1
+FALSE_LABEL2:
+	push i
+	push 0
+	eq
+	jf FALSE_LABEL12
+LABEL11:
+	jmp LABEL13
+FALSE_LABEL12:
+	push i
+	push 1
+	eq
+	jf FALSE_LABEL14
+LABEL13:
+	jmp LABEL10
+	jmp LABEL15
+FALSE_LABEL14:
+	push i
+	push 2
+	eq
+	jf FALSE_LABEL16
+LABEL15:
+	jmp LABEL10
+	jmp LABEL17
+FALSE_LABEL16:
+	push i
+	pop _temp_
+	push i
+	push 1
+	add
+	pop i
+	push _temp_
+LABEL17:
+LABEL10:
+	push i
+	push 2
+	add
+	pop i
+	push i
+	push 1
+	sub
+	pop i
+	push i
+	push 3
+	mul
+	pop i
+	push i
+	push 2
+	div
+	pop i
+	push i
+	push 5
+	mod
+	pop i
+	push i
+	push 1
+	bit_and
+	pop i
+	push i
+	push 2
+	add
+	pop i
+	push i
+	push 3
+	xor
+	pop i
+	push i
+	push 1
+	shl
+	pop i
+	push i
+	push 1
+	shr
+	pop i
+	push i
+	bit_not
+	pop i
+	pop i
+	push ch
+	pop _temp_
+	push ch
+	push 1
+	add
+	pop ch
+	push _temp_
+	push ch
+	push 1
+	sub
+	pop ch
+	push f
+	push 0.500000
+	sub
+	pop f
+	push f
+	push 2.000000
+	mul
+	pop f
+	push f
+	push 2.000000
+	div
+	pop f
+	push true
+	pop q
+	push flag
+	not
+	pop flag
+	push q
+	not
+	pop q
+	and
+	push i
+	push j
+	ge
+	or
+	pop flag
+	push s
+	push t
+	add
+	pop s
+	push i
+	push j
+	push pc
+	push 2
+	add
+	jmp func_add
+	jmp _call_

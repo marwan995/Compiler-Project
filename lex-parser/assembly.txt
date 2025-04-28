@@ -1,75 +1,9 @@
-func_testInt:
-	pop _call_
-	pop x
-	push x
-	push 1
-	add
-	pop y
-	push y
-	print
-	push x
-	jmp _call_
 func_main:
 	pop _call_
-	push 2
-	push pc
-	push 2
-	add
-	jmp func_testInt
-	not
-	pop @ret
-	pop x
-	push 0
-	pop i
-LABEL1:
-	push i
-	push 5
-	lt
-	jf FALSE_LABEL2
-	push i
-	pop _temp_
-	push i
-	push 1
-	add
-	pop i
-	push _temp_
-	push 0
-	pop g
-	push i
-	push 3
-	gt
-	jf FALSE_LABEL3
-	push g
-	push 2
-	add
-	print
-	jmp LABEL3
-FALSE_LABEL3:
-	push i
-	push 2
-	gt
-	jf FALSE_LABEL4
-	push g
-	push 1
-	add
-	print
-	jmp LABEL4
-FALSE_LABEL4:
-	push g
-	print
-LABEL4:
-LABEL3:
-	push 0
-	pop k
-LABEL5:
-	push k
-	push i
-	lt
-	jf FALSE_LABEL6
-	push k
-	print
-	jmp LABEL5
-FALSE_LABEL6:
+	push true
+	jf FALSE_LABEL1
+	jmp FALSE_LABEL0
 	jmp LABEL1
-FALSE_LABEL2:
+FALSE_LABEL1:
+LABEL1:
 	jmp _call_

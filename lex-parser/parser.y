@@ -56,15 +56,19 @@
 
 %left OR
 %left AND
+%left BITWISE_OR
+%left BITWISE_XOR
+%left BITWISE_AND
 %left EQ NE
 %left GT LT GE LE
+%left SHIFT_LEFT SHIFT_RIGHT
 %left ADD SUB
 %left MUL DIV MOD
+%right NOT LOGICAL_NOT UMINUS BITWISE_NOT
+%right INC DEC
 
 %nonassoc IFX
 %nonassoc ELSE
-%nonassoc LOGICAL_NOT
-%nonassoc UMINUS
 
 %type<sValue> type VARIABLE VOID function_type
 
@@ -375,23 +379,25 @@ operation_expressions:
     NOT expression %prec LOGICAL_NOT { 
         $$ = checkUnaryOperationTypes($2); 
         assemblyUnaryMinusNot($2->name, "not"); 
-        $$ = quadUnaryOperationNotMinus($2, "not");
+        Node* n = quadUnaryOperationNotMinus($2, "not");
+        printf("dataType: %s\n", n->dataType);
+        $$ = n;
     }
     | SUB expression %prec UMINUS { 
         $$ = checkUnaryOperationTypes($2); 
         assemblyUnaryMinusNot($2->name, "minus");
         $$ = quadUnaryOperationNotMinus($2, "minus");
     }
-    | BITWISE_NOT expression %prec UMINUS { 
+    | BITWISE_NOT expression %prec BITWISE_NOT { 
         $$ = checkUnaryOperationTypes($2); 
         assemblyUnaryMinusNot($2->name, "bit_not"); 
         $$ = quadUnaryOperationNotMinus($2,"bit_not");
     }
-    |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
-    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
-    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mul"); $$ = quadOperation("mul", $1, $3); }
-    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("div"); $$ = quadOperation("div", $1, $3); }
-    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3); assemblyOperation("mod"); $$ = quadOperation("mod", $1, $3); }
+    |expression ADD expression         { $$ = checkArithmitcExpressionTypes($1, $3,"add"); assemblyOperation("add"); $$ = quadOperation("add", $1, $3); }
+    | expression SUB expression         { $$ = checkArithmitcExpressionTypes($1, $3,"sub"); assemblyOperation("sub"); $$ = quadOperation("sub", $1, $3); }
+    | expression MUL expression         { $$ = checkArithmitcExpressionTypes($1, $3,"mul"); assemblyOperation("mul"); $$ = quadOperation("mul", $1, $3); }
+    | expression DIV expression         { $$ = checkArithmitcExpressionTypes($1, $3,"div"); assemblyOperation("div"); $$ = quadOperation("div", $1, $3); }
+    | expression MOD expression         { $$ = checkArithmitcExpressionTypes($1, $3,"mod"); assemblyOperation("mod"); $$ = quadOperation("mod", $1, $3); }
 
     | expression LT expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("lt"); $$ = quadOperation("lt", $1, $3); }
     | expression GT expression          { $$= checkComparisonExpressionTypes($1, $3); assemblyOperation("gt"); $$ = quadOperation("gt", $1, $3); }
@@ -503,29 +509,42 @@ void yyerror(char *s) {
     long file_pos = ftell(yyin);
     
     rewind(yyin);
-    
+
     char line[1024];
+    char last_line[1024] = "";
     int current_line = 1;
-    while (current_line <= yylineno && fgets(line, sizeof(line), yyin)) {
+    int found = 0;
+
+    while (fgets(line, sizeof(line), yyin)) {
         if (current_line == yylineno) {
             line[strcspn(line, "\n")] = 0;
-            fprintf(syntaxErrorsFileHandler.filePointer, "Error at line %d: %s near '%s'\n", yylineno, s, token);
-            fprintf(syntaxErrorsFileHandler.filePointer, "Line: %s\n", line);
-            fprintf(stderr, "Error at line %d: %s near '%s'\n", yylineno, s, token);
-            fprintf(stderr, "Line: %s\n", line);
+            found = 1;
             break;
         }
+        strcpy(last_line, line);  // remember last line
         current_line++;
     }
-    cleanUpFiles();
+
+    if (!found) {
+        strcpy(line, last_line);
+        line[strcspn(line, "\n")] = 0;
+    }
+
+    fprintf(syntaxErrorsFileHandler.filePointer, "Error at line %d: %s near '%s'\n", yylineno, s, token);
+    fprintf(syntaxErrorsFileHandler.filePointer, "Line: %s\n", line);
+    fprintf(stderr, "Error at line %d: %s near '%s'\n", yylineno, s, token);
+    fprintf(stderr, "Line: %s\n", line);
+
     printSymbolTable();
     fseek(yyin, file_pos, SEEK_SET);
-    if(strcmp(s, "syntax error") == 0) {
 
-        exit(1); 
+    if (strcmp(s, "syntax error") == 0) {
+        exit(1);
     }
+    
     isError = 1;
 }
+
 void yywarn(char *s, int line) {
     
     int warning_line = (line > 0) ? line : yylineno;    

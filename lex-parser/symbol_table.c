@@ -178,7 +178,7 @@ bool checkPramsForFunction(char*name){
 
     for (int i = 0; i < size; i++) {
         int paramId = symbolTable[insideFunctionIdx].paramsIds[i];
-        if (strcmp(symbolTable[paramId].name, name) == 0) {
+        if (strcmp(symbolTable[paramId].name, name) == 0 && symbolTable[i].scope == blockIdx) {
             return true; // Parameter found
         }
     }
