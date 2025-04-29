@@ -231,14 +231,14 @@ void quadJumpCall() {
     printQuad("jmp", "_call_", "_", "_");
 }
 
+void quadPush(Node* node) {
+    char* arg1 = nodeTypeToString(node);
+    printQuad("push", arg1, "_", "_");
+    free(arg1);
+}
+
 Node* quadFunctionCall(char *name, int argCount) {
     int funcIdx = lookup(name);
-
-    printf("Arg count: %d\n", argCount);
-    for(int i = 0; i < argCount; i++) {
-        char* argName = symbolTable[symbolTable[funcIdx].paramsIds[i]].name;
-        printQuad("push", argName, "_", "_");
-    }
 
     for (int i = symbolTable[funcIdx].paramCount - 1; i >= argCount; i--) {
         char tempStr[32];
@@ -246,9 +246,6 @@ Node* quadFunctionCall(char *name, int argCount) {
         snprintf(tempStr, sizeof(tempStr), "%s", value);
         printQuad("push_const", tempStr, "_", "_");
     }
-
-    // printQuad("push", "pc", "_", "_");
-    // printQuad("add", "pc", "2", "pc");
 
     char funcLabel[128];
     snprintf(funcLabel, sizeof(funcLabel), "func_%s", name);

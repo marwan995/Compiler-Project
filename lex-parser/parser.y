@@ -479,10 +479,12 @@ argument_list:
     expression {
         $$ = createArgList();
         addArgType($$, $1->dataType);
+        quadPush($1);
     }
     | argument_list ',' expression {
         addArgType($1, $3->dataType);
         $$ = $1;    
+        quadPush($3);
     }
     | { $$ = createArgList();}
     ;

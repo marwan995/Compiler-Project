@@ -26,7 +26,7 @@ Node* checkArithmitcExpressionTypes (Node* expr1, Node* expr2,char* oper ) {
     if (strcmp(expr1->dataType, expr2->dataType) == 0 
     && strcmp(expr1->dataType, "string") == 0&&strcmp(oper,"add")==0) {
     return getNode(expr1->dataType);
-}
+    }
     if (strcmp(expr1->dataType, expr2->dataType) == 0 
         && strcmp(expr1->dataType, "void") != 0 && strcmp(expr1->dataType, "string") != 0) {
         return getNode(expr1->dataType);

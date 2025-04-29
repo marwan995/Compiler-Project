@@ -34,7 +34,7 @@ typedef struct Symbol {
 } Symbol;
 
 Symbol symbolTable[MAX_SYMBOLS];
-Symbol symbolTableSnapshot[2*MAX_SYMBOLS];
+Symbol symbolTableSnapshot[MAX_SYMBOLS];
 int snapshotCount = 0; // Tracks number of snapshots
 
 int blockIdx = -1; 
@@ -99,6 +99,7 @@ void updateSnapshot(Symbol* symbol) {
 
     snapshotCount++;
 }
+
 void checkMain() {
     for (int i = 0; i < MAX_SYMBOLS; i++) {
         if (symbolTable[i].id != -1 && 
@@ -136,6 +137,7 @@ void printSymbolTable() {
 
     fclose(file);
 }
+
 void enterScope(int lineNumber) {
     printf("Entering scope at line: %i...\n", lineNumber);
     blockIdx++;
@@ -163,6 +165,7 @@ void exitScope(int lineNumber) {
     
     blockIdx--;
 }
+
 bool checkPramsForFunction(char*name){
     if(insideFunctionIdx < 0) {
         return false;
@@ -171,6 +174,7 @@ bool checkPramsForFunction(char*name){
     if (symbolTable[insideFunctionIdx].id == -1) {
         return false; // No function in scope
     }
+
     int size =symbolTable[insideFunctionIdx].paramCount; 
     if (size == 0) {
         return false; // No parameters in the function
@@ -258,6 +262,7 @@ void setVarUsed(char *name) {
     symbolTable[idx].isUsed = true;
     updateSnapshot(&symbolTable[idx]);
 }
+
 char* getSymbolDataType(char *name) {
     int id = lookup(name);
     if (id < 0 || id >= MAX_SYMBOLS || symbolTable[id].id == -1) {
@@ -360,6 +365,7 @@ void validateNotConst(char *name) {
         if (symbolTable[i].id != -1 && strcmp(symbolTable[i].name, name) == 0) {
             if (strcmp(symbolTable[i].type, "const") == 0) {
                 customError("Cannot modify constant %s", name);
+                exit(1);
                 return;
             }
         }

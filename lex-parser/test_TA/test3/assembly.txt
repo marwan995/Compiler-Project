@@ -1,0 +1,147 @@
+func_add:
+	pop _call_
+	pop c
+	pop b
+	pop a
+	push a
+	push b
+	add
+	push c
+	add
+	jmp _call_
+func_power:
+	pop _call_
+	pop exp
+	pop base
+	push 1.000000
+	pop res
+	push 0
+	pop i
+LABEL1:
+	push i
+	push exp
+	lt
+	jf FALSE_LABEL2
+	push i
+	pop _temp_
+	push i
+	push 1
+	add
+	pop i
+	push _temp_
+	push res
+	push base
+	mul
+	pop res
+	jmp LABEL1
+FALSE_LABEL2:
+	push res
+	jmp _call_
+func_is_even:
+	pop _call_
+	pop n
+	push n
+	push 2
+	mod
+	push 0
+	eq
+	jmp _call_
+func_toggle:
+	pop _call_
+	pop v
+	push v
+	not
+	pop v
+	jmp _call_
+func_main:
+	pop _call_
+	push 3
+	pop i
+	push 2.000000
+	push 3
+	push pc
+	push 2
+	add
+	jmp func_power
+	pop f
+	push true
+	push pc
+	push 2
+	add
+	jmp func_toggle
+	pop flag1
+	push false
+	push pc
+	push 2
+	add
+	jmp func_toggle
+	pop flag2
+	push 5
+	pop scoped
+	push 10
+	pop scoped
+	push i
+	push scoped
+	add
+	pop i
+	push scoped
+	push 1
+	push 2
+	push 3
+	push pc
+	push 2
+	add
+	jmp func_add
+	add
+	pop scoped
+	push scoped
+	push 1
+	push 2
+	push 20
+	push pc
+	push 2
+	add
+	jmp func_add
+	add
+	pop scoped
+	push scoped
+	push 1
+	push 20
+	push 10
+	push pc
+	push 2
+	add
+	jmp func_add
+	add
+	pop scoped
+	push f
+	push 1.500000
+	push 2
+	push pc
+	push 2
+	add
+	jmp func_power
+	mul
+	pop f
+	push i
+	push 1
+	shl
+	pop i
+	push i
+	push 2
+	shr
+	pop i
+	push i
+	push 3
+	add
+	pop i
+	push i
+	push 7
+	bit_and
+	pop i
+	push i
+	push 1
+	xor
+	pop i
+	push i
+	jmp _call_

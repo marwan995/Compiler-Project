@@ -1,2 +1,0 @@
-Warning at line 23: Variable scoped is declared but not used
- near token '}'

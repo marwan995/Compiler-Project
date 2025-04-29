@@ -1,0 +1,6 @@
+Warning at line 29: Variable scoped is declared but not used
+ near token '}'
+Warning at line 25: Variable flag1 is declared but not used
+ near token '}'
+Warning at line 26: Variable flag2 is declared but not used
+ near token '}'
