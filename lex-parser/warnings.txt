@@ -1,9 +1,0 @@
-<<<<<<< HEAD
-=======
-Warning at line 29: Variable scoped is declared but not used
- near token '}'
-Warning at line 25: Variable flag1 is declared but not used
- near token '}'
-Warning at line 26: Variable flag2 is declared but not used
- near token '}'
->>>>>>> 50f98254db46ad03c2604009000adcf91781393a

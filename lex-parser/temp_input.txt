@@ -1,47 +1,75 @@
-func int add(int a,int b=10, int c =20){
-    return a+b+c;
-}
 
-func float power(float base, int exp=2){
-    float res=1.0;
-    for(int i=0;i<exp;i++){
-        res = res*base;
-    }
-    return res;
-}
+func int add(int a,int b){ { int a=1; a=a+b; } return a+b; }
 
-func bool is_even(int n){
-    return (n%2)==0;
-}
-
-func bool toggle(bool v=true){
-    return !v;
+func void function(){
+    return ;
 }
 
 func int main()
 {
-    int i=3;
-    float f=power(2.0,3);
-    bool flag1=toggle();
-    bool flag2=toggle(false);
+    int i=0;
+	int j=5;
+    bool flag=true;
+    char ch='X';
+    float f=2.5;
+    string s="foo";
+    string t="bar";
 
-    {
-        int scoped=5;
-        {
-            int scoped =10;
-            i = i + scoped;
-            scoped=scoped+add(1,2,3);
-            scoped=scoped+add(1,2);
-            scoped=scoped+add(1);
+    { int i=3; i=i+j; }
+
+    for(int k=0;k<3;k++){
+        i=i+k;
+        while(i<10){
+            flag = (i&1)==0;
+            if(flag){
+
+            }else{
+                k++;
+            } 
+            if(++i>=7){break;}
+        }
+
+        do{
+            i--;
+            if(i==4){continue;}
+        }while(i==0);
+    }
+
+    switch(i){
+        case 0:{}
+        case 1:{
+            break;
+        }
+        case 2:{
+            break;
+        }
+        default:{
+            i++;
         }
     }
 
-    f=f*power(1.5);
-    i=i<<1;
-    i=i>>2;
-    i=i|3;
-    i=i&7;
-    i=i^1;
+    i = i+2;
+    i = i- 1;
+    i = i*3;
+    i = i/2;
+    i = i%5;
+    i = i&1;
+    i = i|2;
+    i = i^3;
+    i = i<<1;
+    i = i>>1;
+    i = ~i;
 
-    return i;
+    ch++;
+    --ch;
+
+    f = f- 0.5;
+    f = f*2.0;
+    f = f/2.0;
+
+    bool q = true;
+    flag = !flag && !q || (i>=j);
+
+    s = s+t;
+    return add(i,j);
 }
